@@ -204,11 +204,11 @@ inline std::string wordtype(const std::string &s) {
       else
         type = type + "E";
     }
+	else{
+		type = type + "o";
+	}
   }
 
-  if (type.empty()){
-	  std::cout << "debug" << std::endl;
-  }
   return type;
 }
 
