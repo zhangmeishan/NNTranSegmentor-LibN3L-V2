@@ -17,7 +17,7 @@
 #ifndef _DSR_ARGS_H_
 #define _DSR_ARGS_H_
 #include <vector>
-#include <hash_map>
+#include <unordered_map>
 #include <list>
 #include <string>
 #include <iostream>
@@ -215,12 +215,12 @@ namespace dsr{
     
     ~Argument_helper();
   protected:
-    typedef hash_map<std::string, Argument_target*> SMap;
-    typedef hash_map<std::string, Argument_target*> LMap;
+    typedef unordered_map<std::string, Argument_target*> SMap;
+    typedef unordered_map<std::string, Argument_target*> LMap;
     typedef std::vector<Argument_target*> UVect;
-    // A hash_map from short names to arguments.
+    // A unordered_map from short names to arguments.
     SMap short_names_;
-    // A hash_map from long names to arguments.
+    // A unordered_map from long names to arguments.
     LMap long_names_;
     std::string author_;
     std::string name_;

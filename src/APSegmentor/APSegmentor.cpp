@@ -5,7 +5,7 @@
  *      Author: mszhang
  */
 
-#include "LinearSegmentor.h"
+#include "APSegmentor.h"
 
 #include "Argument_helper.h"
 
@@ -302,6 +302,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 				m_pipe.outputAllInstances(devFile + m_options.outBest, decodeInstResults);
 				bCurIterBetter = true;
 			}
+
 
 			if (testNum > 0) {
 				if (!m_options.outBest.empty())

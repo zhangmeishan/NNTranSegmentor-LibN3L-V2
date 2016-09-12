@@ -15,13 +15,11 @@ public:
 	vector<NRHeap<CScoredState, CScoredState_Compare> >  beams;
 	vector<vector<CStateItem*> > outputs; // to define loss
 
-	dtype delta;
-
 private:
 	ModelParams *pModel;
 	HyperParams *pOpts;
 
-	Node bucket_true, bucket_false; // for max-margin and etc., in case of _current.output is not the final output
+	Node bucket;
 
 	// node pointers
 public:
@@ -51,14 +49,7 @@ public:
 			beams[idx].resize(opts.beam);
 		}
 
-		delta = opts.delta;
-
-		bucket_true.val = Mat::Zero(1, 1);		
-		bucket_false.val = Mat::Zero(1, 1);	
-
-		bucket_true.val(0, 0) = 0.0;
-		bucket_false.val(0, 0) = delta;
-		//bucket_false.val(0, 0) = 0.0;
+		bucket.val = Mat::Zero(1, 1);
 
 		pModel = &model;
 		pOpts = &opts;
@@ -143,12 +134,7 @@ public:
 			states_per_step.clear();
 			for (int idx = 0; idx < offset; idx++){
 				states[step][idx].computeScore(this);
-				if (!states[step][idx]._bGold && train){
-					states[step][idx]._score.forward(this, &(states[step][idx]._current.output), &(bucket_false));
-				}
-				else{					
-					states[step][idx]._score.forward(this, &(states[step][idx]._current.output), &(bucket_true));
-				}
+				states[step][idx]._score.forward(this, &(states[step][idx]._current.output), &(bucket));
 				states_per_step.push_back(&(states[step][idx]));
 				scored_action.item = &(states[step][idx]);
 				scored_action.score = scored_action.item->_score.val(0, 0);

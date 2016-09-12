@@ -11,7 +11,6 @@ struct HyperParams{
 	//required
 	int beam;
 	int maxlength;
-	dtype delta;
 	unordered_set<string> dicts;  // dictionary in order to extract iv/oov features.
 
 
@@ -29,7 +28,6 @@ public:
 	void setRequared(Options& opt){
 		//please specify diction outside
 		beam = opt.beam;
-		delta = opt.delta;
 		bAssigned = true;
 
 		nnRegular = opt.regParameter;

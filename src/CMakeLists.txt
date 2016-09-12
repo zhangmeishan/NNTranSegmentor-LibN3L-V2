@@ -5,6 +5,6 @@ include_directories(
 
 
 add_subdirectory(LinearSegmentor)
-
+add_subdirectory(APSegmentor)
 
 

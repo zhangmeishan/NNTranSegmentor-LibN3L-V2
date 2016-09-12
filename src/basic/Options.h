@@ -13,7 +13,6 @@ using namespace std;
 
 class Options {
 public:
-
 	int wordCutOff;
 	int featCutOff;
 	int charCutOff;
@@ -59,9 +58,10 @@ public:
 	int maxInstance;
 	vector<string> testFiles;
 	string outBest;
+	int base;
 
 	Options() {
-		wordCutOff = 4;
+		wordCutOff = 0;
 		featCutOff = 0;
 		charCutOff = 0;
 		bicharCutOff = 0;
@@ -72,7 +72,7 @@ public:
 		adaAlpha = 0.01;
 		regParameter = 1e-8;
 		dropProb = 0.0;
-		delta = 0.2;
+		delta = 0.1;
 		clip = -1.0;
 		oovRatio = 0.2;
 		beam = 16;
@@ -106,7 +106,7 @@ public:
 		maxInstance = -1;
 		testFiles.clear();
 		outBest = "";
-
+		base = 1;
 	}
 
 	virtual ~Options() {
@@ -203,6 +203,8 @@ public:
 				testFiles.push_back(pr.second);
 			if (pr.first == "outBest")
 				outBest = pr.second;
+			if (pr.first == "base")
+				base = atoi(pr.second.c_str());
 
 		}
 	}
@@ -255,6 +257,7 @@ public:
 			std::cout << "testFile = " << testFiles[idx] << std::endl;
 		}
 		std::cout << "outBest = " << outBest << std::endl;
+		std::cout << "base = " << base << std::endl;
 	}
 
 	void load(const std::string& infile) {

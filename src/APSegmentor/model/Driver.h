@@ -67,13 +67,13 @@ public:
 	int num = sentences.size();
 	for (int idx = 0; idx < num; idx++) {
 		_pcg->forward(&sentences[idx], &goldACs[idx]);
+
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		//cost += loss(num);
-
-		cost += loss_google(num);
+		cost += loss(num);
 
 		_pcg->backward();
+
     }
 
     return cost;
@@ -140,68 +140,6 @@ private:
 		return 0.0;
 	}
 
-	dtype loss_google(int num){
-		int advancedStep = _pcg->outputs.size();
-		_eval.correct_label_count += advancedStep;
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGoldGenerator = NULL;
-		CStateItem* pGenerator;
-		static dtype sum, max;
-		static int curcount, goldIndex;
-		static vector<dtype> scores;
-		dtype cost = 0.0;
-
-		for (int step = 0; step < advancedStep; step++){
-			
-			curcount = _pcg->outputs[step].size();
-			max = 0.0;
-			goldIndex = -1;
-			pBestGenerator = pGoldGenerator = NULL;
-			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
-				if (pGenerator->_bGold){
-					pGoldGenerator = pGenerator;
-					goldIndex = idx;
-				}
-				if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-					pBestGenerator = pGenerator;
-				}				
-			}
-
-			if (goldIndex == -1){
-				std::cout << "impossible" << std::endl;
-			}
-			if (pGoldGenerator->_score.loss.size() == 0){
-				pGoldGenerator->_score.loss = Mat::Zero(1, 1);
-			}
-			pGoldGenerator->_score.loss.coeffRef(0) -= 1.0 / num;
-
-			
-			max = pBestGenerator->_score.val.coeffRef(0);
-			sum = 0.0;
-			scores.resize(curcount);
-			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
-				scores[idx] = exp(pGenerator->_score.val.coeffRef(0) - max);
-				sum += scores[idx];
-			}
-
-			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
-
-				if (pGenerator->_score.loss.size() == 0){
-					pGenerator->_score.loss = Mat::Zero(1, 1);
-				}
-				pGenerator->_score.loss.coeffRef(0) += scores[idx] / (sum * num);
-				pGenerator->_score.lock--;
-			}
-
-			cost += -log(scores[goldIndex] / sum);
-		
-		}
-
-		return cost;
-	}
 
 	void predict(std::vector<std::string>& words){
 		int advancedStep = _pcg->outputs.size();

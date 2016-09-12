@@ -48,13 +48,13 @@ public:
 
 
 	void evaluate(const vector<string>& resulted_segs, Metric& eval) const {
-	  hash_set<string> golds;
+	  unordered_set<string> golds;
 	  getSegIndexes(words, golds);
 
-	  hash_set<string> preds;
+	  unordered_set<string> preds;
 	  getSegIndexes(resulted_segs, preds);
 
-    hash_set<string>::iterator iter;
+    unordered_set<string>::iterator iter;
     eval.overall_label_count += golds.size();
     eval.predicated_label_count += preds.size();
     for (iter = preds.begin(); iter != preds.end(); iter++) {
@@ -65,7 +65,7 @@ public:
 
 	}
 
-	void getSegIndexes(const vector<string>& segs, hash_set<string>& segIndexes) const{
+	void getSegIndexes(const vector<string>& segs, unordered_set<string>& segIndexes) const{
 	  segIndexes.clear();
 	  int idx = 0, idy = 0;
 	  string curWord = "";

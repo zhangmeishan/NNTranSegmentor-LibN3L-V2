@@ -17,29 +17,29 @@ public:
 
 	//feature templates
 	//append feature parameters
-	SparseC2Params  app_1C_C0;
-	SparseC2Params  app_1Wc0_C0;
-	SparseC3Params  app_2CT_1CT_CT0;
+	APC2Params  app_1C_C0;
+	APC2Params  app_1Wc0_C0;
+	APC3Params  app_2CT_1CT_CT0;
 
 	//separate feature parameters
-	SparseC2Params  sep_1C_C0;
-	SparseC2Params  sep_1Wc0_C0;
-	SparseC3Params  sep_2CT_1CT_CT0;
-	SparseC1Params  sep_1W;
-	SparseC2Params  sep_1WD_1WL;
-	SparseC1Params  sep_1WSingle;
-	SparseC2Params  sep_1W_C0;
-	SparseC2Params  sep_2W_1W;
-	SparseC2Params  sep_2Wc0_1W;
-	SparseC2Params  sep_2Wcn_1W;
-	SparseC2Params  sep_2Wc0_1Wc0;
-	SparseC2Params  sep_2Wcn_1Wcn;
-	SparseC2Params  sep_2W_1WL;
-	SparseC2Params  sep_2WL_1W;
-	SparseC2Params  sep_2W_1Wcn;
-	SparseC2Params  sep_1Wc0_1WL;
-	SparseC2Params  sep_1Wcn_1WL;
-	SparseC2Params  sep_1Wci_1Wcn;
+	APC2Params  sep_1C_C0;
+	APC2Params  sep_1Wc0_C0;
+	APC3Params  sep_2CT_1CT_CT0;
+	APC1Params  sep_1W;
+	APC2Params  sep_1WD_1WL;
+	APC1Params  sep_1WSingle;
+	APC2Params  sep_1W_C0;
+	APC2Params  sep_2W_1W;
+	APC2Params  sep_2Wc0_1W;
+	APC2Params  sep_2Wcn_1W;
+	APC2Params  sep_2Wc0_1Wc0;
+	APC2Params  sep_2Wcn_1Wcn;
+	APC2Params  sep_2W_1WL;
+	APC2Params  sep_2WL_1W;
+	APC2Params  sep_2W_1Wcn;
+	APC2Params  sep_1Wc0_1WL;
+	APC2Params  sep_1Wcn_1WL;
+	APC2Params  sep_1Wci_1Wcn;
 
 
 public:

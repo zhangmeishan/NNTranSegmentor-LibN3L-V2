@@ -14,29 +14,29 @@
 struct ActionedNodes {
 
 	//append feature parameters
-	SparseC2Node  app_1C_C0;
-	SparseC2Node  app_1Wc0_C0;
-	SparseC3Node  app_2CT_1CT_CT0;
+	APC2Node  app_1C_C0;
+	APC2Node  app_1Wc0_C0;
+	APC3Node  app_2CT_1CT_CT0;
 
 	//separate feature parameters
-	SparseC2Node  sep_1C_C0;
-	SparseC2Node  sep_1Wc0_C0;
-	SparseC3Node  sep_2CT_1CT_CT0;
-	SparseC1Node  sep_1W;
-	SparseC2Node  sep_1WD_1WL;
-	SparseC1Node  sep_1WSingle;
-	SparseC2Node  sep_1W_C0;
-	SparseC2Node  sep_2W_1W;
-	SparseC2Node  sep_2Wc0_1W;
-	SparseC2Node  sep_2Wcn_1W;
-	SparseC2Node  sep_2Wc0_1Wc0;
-	SparseC2Node  sep_2Wcn_1Wcn;
-	SparseC2Node  sep_2W_1WL;
-	SparseC2Node  sep_2WL_1W;
-	SparseC2Node  sep_2W_1Wcn;
-	SparseC2Node  sep_1Wc0_1WL;
-	SparseC2Node  sep_1Wcn_1WL;
-	vector<SparseC2Node>  sep_1Wci_1Wcn;
+	APC2Node  sep_1C_C0;
+	APC2Node  sep_1Wc0_C0;
+	APC3Node  sep_2CT_1CT_CT0;
+	APC1Node  sep_1W;
+	APC2Node  sep_1WD_1WL;
+	APC1Node  sep_1WSingle;
+	APC2Node  sep_1W_C0;
+	APC2Node  sep_2W_1W;
+	APC2Node  sep_2Wc0_1W;
+	APC2Node  sep_2Wcn_1W;
+	APC2Node  sep_2Wc0_1Wc0;
+	APC2Node  sep_2Wcn_1Wcn;
+	APC2Node  sep_2W_1WL;
+	APC2Node  sep_2WL_1W;
+	APC2Node  sep_2W_1Wcn;
+	APC2Node  sep_1Wc0_1WL;
+	APC2Node  sep_1Wcn_1WL;
+	vector<APC2Node>  sep_1Wci_1Wcn;
 
 	PAddNode output;
 
