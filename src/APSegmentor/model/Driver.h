@@ -70,7 +70,7 @@ public:
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss(num);
+		cost += loss(num);  
 
 		_pcg->backward();
 
@@ -79,9 +79,9 @@ public:
     return cost;
   }
 
-  void decode(const std::vector<string>& sentence, vector<string>& words){
+  void decode(const std::vector<string>& sentence, vector<string>& result){
 	  _pcg->forward(&sentence);
-	  predict(words);
+	  predict(result);
   }
 
   void extractFeat(const std::vector<std::vector<string> >& sentences, const vector<vector<CAction> >& goldACs){
@@ -105,55 +105,43 @@ public:
 private:
 	// max-margin
 	dtype loss(int num){
-		int advancedStep = _pcg->outputs.size();
-		_eval.correct_label_count += advancedStep;
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGoldGenerator = NULL;
-		CStateItem* pGenerator;
+		int step = _pcg->outputs.size();
+		_eval.correct_label_count += step;
+		static PNode pBestNode = NULL;
+		static PNode pGoldNode = NULL;
+		static PNode pCurNode;
 		
-		for (int idx = 0; idx < _pcg->outputs[advancedStep - 1].size(); idx++){
-			pGenerator = _pcg->outputs[advancedStep - 1][idx];
-			if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-				pBestGenerator = pGenerator;
+		int offset = _pcg->outputs[step - 1].size();
+		for (int idx = 0; idx < offset; idx++){
+			pCurNode = _pcg->outputs[step - 1][idx].in;
+			if (pBestNode == NULL || pCurNode->val.coeffRef(0) > pBestNode->val.coeffRef(0)){
+				pBestNode = pCurNode;
 			}
-			if (pGenerator->_bGold){
-				pGoldGenerator = pGenerator;
+			if (_pcg->outputs[step - 1][idx].bGold){
+				pGoldNode = pCurNode;
 			}
 		}
 
-		if (pGoldGenerator != pBestGenerator){
-			if (pGoldGenerator->_score.loss.size() == 0){
-				pGoldGenerator->_score.loss = Mat::Zero(1, 1);
+		if (pGoldNode != pBestNode){
+			if (pGoldNode->loss.size() == 0){
+				pGoldNode->loss = Mat::Zero(1, 1);
 			}
-			pGoldGenerator->_score.loss.coeffRef(0) = -1.0 / num;
-			pGoldGenerator->_score.lock--;
+			pGoldNode->loss.coeffRef(0) = -1.0 / num;
 
-			if (pBestGenerator->_score.loss.size() == 0){
-				pBestGenerator->_score.loss = Mat::Zero(1, 1);
+			if (pBestNode->loss.size() == 0){
+				pBestNode->loss = Mat::Zero(1, 1);
 			}
-			pBestGenerator->_score.loss.coeffRef(0) = 1.0 / num;
-			pBestGenerator->_score.lock--;
+			pBestNode->loss.coeffRef(0) = 1.0 / num;
 
 			return 1.0;
 		}
 
 		return 0.0;
 	}
-
-
-	void predict(std::vector<std::string>& words){
-		int advancedStep = _pcg->outputs.size();
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGenerator = NULL;
-		for (int idx = 0; idx < _pcg->outputs[advancedStep - 1].size(); idx++){
-			pGenerator = _pcg->outputs[advancedStep - 1][idx];
-			if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-				pBestGenerator = pGenerator;
-			}
-		}
-
-		pBestGenerator->getSegResults(words);
-
+	
+	void predict(vector<string>& result){
+		int step = _pcg->outputs.size();
+		_pcg->states[step - 1][0].getSegResults(result);
 	}
 
 

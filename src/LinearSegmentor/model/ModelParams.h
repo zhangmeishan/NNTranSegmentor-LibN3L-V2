@@ -10,9 +10,7 @@ public:
 	Alphabet words; // words
 	Alphabet chars; // chars
 	Alphabet charTypes; // char type
-	Alphabet wordLengths; // word length
-	Alphabet dictionarys; // lexicon features: iv or oov words
-	Alphabet actions; // words
+
 
 
 	//feature templates
@@ -45,7 +43,7 @@ public:
 public:
 	bool initial(HyperParams& opts){
 		// some model parameters should be initialized outside
-		if (words.size() <= 0 || chars.size() <= 0 || charTypes.size() <= 0 || wordLengths.size() <= 0 || dictionarys.size() <= 0){
+		if (words.size() <= 0 || chars.size() <= 0){
 			return false;
 		}
 		app_1C_C0.initial();

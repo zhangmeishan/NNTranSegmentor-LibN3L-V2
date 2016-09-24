@@ -67,21 +67,21 @@ public:
 	int num = sentences.size();
 	for (int idx = 0; idx < num; idx++) {
 		_pcg->forward(&sentences[idx], &goldACs[idx]);
+
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		//cost += loss(num);
-
 		cost += loss_google(num);
 
 		_pcg->backward();
+
     }
 
     return cost;
   }
 
-  void decode(const std::vector<string>& sentence, vector<string>& words){
+  void decode(const std::vector<string>& sentence, vector<string>& result){
 	  _pcg->forward(&sentence);
-	  predict(words);
+	  predict(result);
   }
 
   void extractFeat(const std::vector<std::vector<string> >& sentences, const vector<vector<CAction> >& goldACs){
@@ -105,95 +105,91 @@ public:
 private:
 	// max-margin
 	dtype loss(int num){
-		int advancedStep = _pcg->outputs.size();
-		_eval.correct_label_count += advancedStep;
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGoldGenerator = NULL;
-		CStateItem* pGenerator;
+		int step = _pcg->outputs.size();
+		_eval.correct_label_count += step;
+		static PNode pBestNode = NULL;
+		static PNode pGoldNode = NULL;
+		static PNode pCurNode;
 		
-		for (int idx = 0; idx < _pcg->outputs[advancedStep - 1].size(); idx++){
-			pGenerator = _pcg->outputs[advancedStep - 1][idx];
-			if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-				pBestGenerator = pGenerator;
+		int offset = _pcg->outputs[step - 1].size();
+		for (int idx = 0; idx < offset; idx++){
+			pCurNode = _pcg->outputs[step - 1][idx].in;
+			if (pBestNode == NULL || pCurNode->val.coeffRef(0) > pBestNode->val.coeffRef(0)){
+				pBestNode = pCurNode;
 			}
-			if (pGenerator->_bGold){
-				pGoldGenerator = pGenerator;
+			if (_pcg->outputs[step - 1][idx].bGold){
+				pGoldNode = pCurNode;
 			}
 		}
 
-		if (pGoldGenerator != pBestGenerator){
-			if (pGoldGenerator->_score.loss.size() == 0){
-				pGoldGenerator->_score.loss = Mat::Zero(1, 1);
+		if (pGoldNode != pBestNode){
+			if (pGoldNode->loss.size() == 0){
+				pGoldNode->loss = Mat::Zero(1, 1);
 			}
-			pGoldGenerator->_score.loss.coeffRef(0) = -1.0 / num;
-			pGoldGenerator->_score.lock--;
+			pGoldNode->loss.coeffRef(0) = -1.0 / num;
 
-			if (pBestGenerator->_score.loss.size() == 0){
-				pBestGenerator->_score.loss = Mat::Zero(1, 1);
+			if (pBestNode->loss.size() == 0){
+				pBestNode->loss = Mat::Zero(1, 1);
 			}
-			pBestGenerator->_score.loss.coeffRef(0) = 1.0 / num;
-			pBestGenerator->_score.lock--;
+			pBestNode->loss.coeffRef(0) = 1.0 / num;
 
 			return 1.0;
 		}
 
 		return 0.0;
 	}
-
+	
 	dtype loss_google(int num){
-		int advancedStep = _pcg->outputs.size();
-		_eval.correct_label_count += advancedStep;
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGoldGenerator = NULL;
-		CStateItem* pGenerator;
+		int maxstep = _pcg->outputs.size();
+		_eval.correct_label_count += maxstep;
+		static PNode pBestNode = NULL;
+		static PNode pGoldNode = NULL;
+		static PNode pCurNode;
 		static dtype sum, max;
 		static int curcount, goldIndex;
 		static vector<dtype> scores;
 		dtype cost = 0.0;
 
-		for (int step = 0; step < advancedStep; step++){
-			
+		for (int step = 0; step < maxstep; step++){
 			curcount = _pcg->outputs[step].size();
 			max = 0.0;
 			goldIndex = -1;
-			pBestGenerator = pGoldGenerator = NULL;
+			pBestNode = pGoldNode = NULL;
 			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
-				if (pGenerator->_bGold){
-					pGoldGenerator = pGenerator;
-					goldIndex = idx;
+				pCurNode = _pcg->outputs[step][idx].in;
+				if (pBestNode == NULL || pCurNode->val.coeffRef(0) > pBestNode->val.coeffRef(0)){
+					pBestNode = pCurNode;
 				}
-				if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-					pBestGenerator = pGenerator;
+				if (_pcg->outputs[step][idx].bGold){
+					pGoldNode = pCurNode;
+					goldIndex = idx;
 				}				
 			}
 
 			if (goldIndex == -1){
 				std::cout << "impossible" << std::endl;
 			}
-			if (pGoldGenerator->_score.loss.size() == 0){
-				pGoldGenerator->_score.loss = Mat::Zero(1, 1);
+			if (pGoldNode->loss.size() == 0){
+				pGoldNode->loss = Mat::Zero(1, 1);
 			}
-			pGoldGenerator->_score.loss.coeffRef(0) -= 1.0 / num;
+			pGoldNode->loss.coeffRef(0) = -1.0 / num;
 
-			
-			max = pBestGenerator->_score.val.coeffRef(0);
+			max = pCurNode->val.coeffRef(0);
 			sum = 0.0;
 			scores.resize(curcount);
 			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
-				scores[idx] = exp(pGenerator->_score.val.coeffRef(0) - max);
+				pCurNode = _pcg->outputs[step][idx].in;
+				scores[idx] = exp(pCurNode->val.coeffRef(0) - max);
 				sum += scores[idx];
 			}
 
 			for (int idx = 0; idx < curcount; idx++){
-				pGenerator = _pcg->outputs[step][idx];
+				pCurNode = _pcg->outputs[step][idx].in;
 
-				if (pGenerator->_score.loss.size() == 0){
-					pGenerator->_score.loss = Mat::Zero(1, 1);
+				if (pCurNode->loss.size() == 0){
+					pCurNode->loss = Mat::Zero(1, 1);
 				}
-				pGenerator->_score.loss.coeffRef(0) += scores[idx] / (sum * num);
-				pGenerator->_score.lock--;
+				pCurNode->loss.coeffRef(0) += scores[idx] / (sum * num);
 			}
 
 			cost += -log(scores[goldIndex] / sum);
@@ -201,21 +197,12 @@ private:
 		}
 
 		return cost;
-	}
+	}	
 
-	void predict(std::vector<std::string>& words){
-		int advancedStep = _pcg->outputs.size();
-		CStateItem* pBestGenerator = NULL;
-		CStateItem* pGenerator = NULL;
-		for (int idx = 0; idx < _pcg->outputs[advancedStep - 1].size(); idx++){
-			pGenerator = _pcg->outputs[advancedStep - 1][idx];
-			if (pBestGenerator == NULL || pGenerator->_score.val.coeffRef(0) > pBestGenerator->_score.val.coeffRef(0)){
-				pBestGenerator = pGenerator;
-			}
-		}
 
-		pBestGenerator->getSegResults(words);
-
+	void predict(vector<string>& result){
+		int step = _pcg->outputs.size();
+		_pcg->states[step - 1][0].getSegResults(result);
 	}
 
 

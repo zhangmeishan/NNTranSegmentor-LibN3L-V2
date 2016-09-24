@@ -4,22 +4,32 @@
 #include "ModelParams.h"
 #include "State.h"
 
+struct COutput{
+	PNode in;
+	bool bGold;
+
+	COutput() : in(NULL), bGold(0){
+	}
+
+	COutput(const COutput& other) : in(other.in), bGold(other.bGold){
+	}
+};
 
 // Each model consists of two parts, building neural graph and defining output losses.
+// This framework wastes memory
 struct ComputionGraph : Graph{
 
 public:
 	// node instances
 	CStateItem start;
-	vector<vector<CStateItem> > states;
-	vector<NRHeap<CScoredState, CScoredState_Compare> >  beams;
-	vector<vector<CStateItem*> > outputs; // to define loss
+	vector<vector<CStateItem> > states; 
+	//vector<NRHeap<CScoredState, CScoredState_Compare> >  beams;
+	//vector<vector<CStateItem*> > outputs; // to define loss
+	vector<vector<COutput> > outputs;
 
 private:
 	ModelParams *pModel;
 	HyperParams *pOpts;
-
-	Node bucket;
 
 	// node pointers
 public:
@@ -33,23 +43,24 @@ public:
 
 public:
 	//allocate enough nodes 
-	inline void initial(ModelParams& model, HyperParams& opts){		
+	inline void initial(ModelParams& model, HyperParams& opts){
+		std::cout << "state size: " << sizeof(CStateItem) << std::endl;
+		std::cout << "action node size: " << sizeof(ActionedNodes) << std::endl;
 		states.resize(opts.maxlength + 1);
 		for (int idx = 0; idx < states.size(); idx++){
-			states[idx].resize(opts.beam * model.actions.size());
+			states[idx].resize(opts.beam);
 			for (int idy = 0; idy < states[idx].size(); idy++){
 				states[idx][idy].initial(model, opts);
 			}
 		}
 		start.clear();
-		start._score.val = Mat::Zero(1, 1);
+		start.initial(model, opts);
 
-		beams.resize(opts.maxlength + 1);
-		for (int idx = 0; idx < states.size(); idx++){
-			beams[idx].resize(opts.beam);
-		}
+		//beams.resize(opts.maxlength + 1);
+		//for (int idx = 0; idx < states.size(); idx++){
+		//	beams[idx].resize(opts.beam);
+		//}
 
-		bucket.val = Mat::Zero(1, 1);
 
 		pModel = &model;
 		pOpts = &opts;
@@ -57,7 +68,7 @@ public:
 
 	inline void clear(){
 		Graph::clear();
-		beams.clear();
+		//beams.clear();
 
 		clearVec(states);
 		pModel = NULL;
@@ -79,13 +90,16 @@ public:
 		//second step, build graph
 		static vector<CStateItem*> lastStates;
 		static CStateItem* pGenerator;
-		static int step, offset;
+		static int step, offset, nodeIndex;
 		static std::vector<CAction> actions; // actions to apply for a candidate
 		static CScoredState scored_action; // used rank actions
+		static COutput output;
 		static bool correct_action_scored;
 		static bool correct_in_beam;
-		static CAction answer;
-		static vector<CStateItem*> states_per_step;
+		static CAction answer, action;
+		static vector<COutput> per_step_output;
+		static NRHeap<CScoredState, CScoredState_Compare> beam;
+		beam.resize(pOpts->beam);
 
 		lastStates.clear();
 		start.setInput(pCharacters);
@@ -96,30 +110,46 @@ public:
 			//prepare for the next
 			for (int idx = 0; idx < lastStates.size(); idx++){
 				pGenerator = lastStates[idx];
-				pGenerator->prepare(pOpts->dicts, pModel);
+				pGenerator->prepare(pOpts, pModel);
 			}
-
-			offset = 0;
+			
 			answer.clear();
+			per_step_output.clear();
 			correct_action_scored = false;
-			if (train) answer = (*goldAC)[step];
+			if (train) answer = step < goldAC->size() ? (*goldAC)[step] : CAction(CAction::IDLE);
+			beam.clear();
 			for (int idx = 0; idx < lastStates.size(); idx++){
 				pGenerator = lastStates[idx];
 				pGenerator->getCandidateActions(actions);
+				pGenerator->computeNextScore(this, actions);
+				scored_action.item = pGenerator;
 				for (int idy = 0; idy < actions.size(); ++idy) {
-					pGenerator->move(&states[step][offset], actions[idy]);
+					scored_action.ac = actions[idy]._code;
+					nodeIndex = actions[idy].isAppend() ? 0 : 1;
+					scored_action.score = pGenerator->_nextscores.outputs[nodeIndex].val.coeff(0, 0);
+					output.in = &(pGenerator->_nextscores.outputs[nodeIndex]);
 					if (pGenerator->_bGold && actions[idy] == answer){
-						states[step][offset]._bGold = true;
+						scored_action.bGold = true; 
 						correct_action_scored = true;
+						output.bGold = true;
 					}
-					offset++;
+					else{
+						//scored_action.score += ?? //for max-margin
+						scored_action.bGold = false;
+						output.bGold = false;
+					}
+					beam.add_elem(scored_action);
+					per_step_output.push_back(output);
 				}
 			}
+
+			outputs.push_back(per_step_output);
 
 			if (train && !correct_action_scored){ //training
 				std::cout << "error during training, gold-standard action is filtered" << std::endl;
 			}
 
+			offset = beam.elemsize();
 			if (offset == 0){ // judge correctiveness
 				std::cout << "error, reach no output here, please find why" << std::endl;
 				for (int idx = 0; idx < pCharacters->size(); idx++) {
@@ -129,30 +159,26 @@ public:
 				return -1;
 			}
 
-			//scoring and sorting
-			beams[step].clear();
-			states_per_step.clear();
-			for (int idx = 0; idx < offset; idx++){
-				states[step][idx].computeScore(this);
-				states[step][idx]._score.forward(this, &(states[step][idx]._current.output), &(bucket));
-				states_per_step.push_back(&(states[step][idx]));
-				scored_action.item = &(states[step][idx]);
-				scored_action.score = scored_action.item->_score.val(0, 0);
-				beams[step].add_elem(scored_action);
+			beam.sort_elem();			
+			for (int idx = 0; idx < offset; idx++){				
+				//states[step][idx]._score.forward(this, &(states[step][idx]._current.output), &(bucket));
+				pGenerator = beam[idx].item;
+				action.set(beam[idx].ac);
+				pGenerator->move(&(states[step][idx]), action);
+				states[step][idx]._bGold = beam[idx].bGold;
+				nodeIndex = action.isAppend() ? 0 : 1;
+				states[step][idx]._score = &(pGenerator->_nextscores.outputs[nodeIndex]);
 			}			
-			beams[step].sort_elem();
-			outputs.push_back(states_per_step);
 
-
-			if (beams[step][0].item->IsTerminated()){
+			if (states[step][0].IsTerminated()){
 				break;
 			}
 
 			//for next step
 			lastStates.clear();
 			correct_in_beam = false;
-			for (int idx = 0; idx < beams[step].elemsize(); idx++){
-				lastStates.push_back(beams[step][idx].item);
+			for (int idx = 0; idx < offset; idx++){
+				lastStates.push_back(&(states[step][idx]));
 				if (lastStates[idx]->_bGold){
 					correct_in_beam = true;
 				}
@@ -164,15 +190,6 @@ public:
 
 			step++;
 		}
-
-
-		//third step, define output nodes
-		for (int idx = 0; idx < outputs.size(); idx++){
-			for (int idy = 0; idy < outputs[idx].size(); idy++){
-				exportNode(&(outputs[idx][idy]->_score));
-			}
-		}
-
 
 		return 1;
 	}
@@ -193,7 +210,7 @@ public:
 		step = 0;
 		while (true){
 			//prepare for the next
-			lastState->prepare(pOpts->dicts, pModel);
+			lastState->prepare(pOpts, pModel);
 			answer = (*goldAC)[step];
 			pGenerator = &states[step][0];
 			lastState->move(pGenerator, answer);

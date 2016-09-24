@@ -16,22 +16,22 @@
 
 class CStateItem {
 public:
-	std::string _strlastWord;
-	int _lastWordStart;
-	int _lastWordEnd;
+	std::string _word;
+	int _wstart;
+	int _wend;
 	CStateItem *_prevStackState;
 	CStateItem *_prevState;
-	int _nextPosition;
+	int _next_index;
 
-	const std::vector<std::string> *_pCharacters;
-	int _characterSize;
+	const std::vector<std::string> *_chars;
+	int _char_size;
+	int _word_count;
 
-	CAction _lastAction;
-	PAddNode _score;
-	int _wordnum;
+	CAction _lastAction;	
+	PNode _score;
 
 	// features
-	ActionedNodes _current;  // features current used
+	ActionedNodes _nextscores;  // features current used
 	AtomFeatures _atomFeat;  //features will be used for future
 
 public:
@@ -49,27 +49,28 @@ public:
 	}
 
 	void initial(ModelParams& params, HyperParams& hyparams) {
-		_current.initial(params, hyparams);
+		_nextscores.initial(params, hyparams);
 	}
 
 	void setInput(const std::vector<std::string>* pCharacters) {
-		_pCharacters = pCharacters;
-		_characterSize = pCharacters->size();
+		_chars = pCharacters;
+		_char_size = pCharacters->size();
 	}
 
 	void clear() {
-		_strlastWord = "";
-		_lastWordStart = -1;
-		_lastWordEnd = -1;
+		_word = "";
+		_wstart = -1;
+		_wend = -1;
 		_prevStackState = 0;
 		_prevState = 0;
-		_nextPosition = 0;
-		_pCharacters = 0;
-		_characterSize = 0;
+		_next_index = 0;
+		_chars = 0;
+		_char_size = 0;
 		_lastAction.clear();
-		_wordnum = 0;
+		_word_count = 0;
 		_bStart = true;
 		_bGold = true;
+		_score = NULL;
 	}
 
 
@@ -82,62 +83,62 @@ public:
 	}
 
 	std::string getLastWord() {
-		return _strlastWord;
+		return _word;
 	}
 
 
 public:
 	//only assign context
 	void separate(CStateItem* next){
-		if (_nextPosition >= _characterSize) {
+		if (_next_index >= _char_size) {
 			std::cout << "separate error" << std::endl;
 			return;
 		}
-		next->_strlastWord = (*_pCharacters)[_nextPosition];
-		next->_lastWordStart = _nextPosition;
-		next->_lastWordEnd = _nextPosition;
+		next->_word = (*_chars)[_next_index];
+		next->_wstart = _next_index;
+		next->_wend = _next_index;
 		next->_prevStackState = this;
 		next->_prevState = this;
-		next->_nextPosition = _nextPosition + 1;
-		next->_pCharacters = _pCharacters;
-		next->_characterSize = _characterSize;
-		next->_wordnum = _wordnum + 1;
+		next->_next_index = _next_index + 1;
+		next->_chars = _chars;
+		next->_char_size = _char_size;
+		next->_word_count = _word_count + 1;
 		next->_lastAction.set(CAction::SEP);
 	}
 
 	//only assign context
 	void finish(CStateItem* next){
-		if (_nextPosition != _characterSize) {
+		if (_next_index != _char_size) {
 			std::cout << "finish error" << std::endl;
 			return;
 		}
-		next->_strlastWord = _strlastWord;
-		next->_lastWordStart = _lastWordStart;
-		next->_lastWordEnd = _lastWordEnd;
-		next->_prevStackState = _prevStackState;
+		next->_word = "";
+		next->_wstart = -1;
+		next->_wend = -1;
+		next->_prevStackState = this;
 		next->_prevState = this;
-		next->_nextPosition = _nextPosition + 1;
-		next->_pCharacters = _pCharacters;
-		next->_characterSize = _characterSize;
-		next->_wordnum = _wordnum + 1;
+		next->_next_index = _next_index + 1;
+		next->_chars = _chars;
+		next->_char_size = _char_size;
+		next->_word_count = _word_count;
 		next->_lastAction.set(CAction::FIN);
 	}
 
 	//only assign context
 	void append(CStateItem* next){
-		if (_nextPosition >= _characterSize) {
+		if (_next_index >= _char_size) {
 			std::cout << "append error" << std::endl;
 			return;
 		}
-		next->_strlastWord = _strlastWord + (*_pCharacters)[_nextPosition];
-		next->_lastWordStart = _lastWordStart;
-		next->_lastWordEnd = _nextPosition;
+		next->_word = _word + (*_chars)[_next_index];
+		next->_wstart = _wstart;
+		next->_wend = _next_index;
 		next->_prevStackState = _prevStackState;
 		next->_prevState = this;
-		next->_nextPosition = _nextPosition + 1;
-		next->_pCharacters = _pCharacters;
-		next->_characterSize = _characterSize;
-		next->_wordnum = _wordnum;
+		next->_next_index = _next_index + 1;
+		next->_chars = _chars;
+		next->_char_size = _char_size;
+		next->_word_count = _word_count;
 		next->_lastAction.set(CAction::APP);
 	}
 
@@ -168,28 +169,41 @@ public:
 	//partial results
 	void getSegResults(std::vector<std::string>& words) const {
 		words.clear();
-		words.insert(words.begin(), _strlastWord);
+		static vector<const CStateItem *> preSepStates;
+		preSepStates.clear();
+		if (!IsTerminated()){
+			preSepStates.insert(preSepStates.begin(), this);
+		}
 		const CStateItem *prevStackState = _prevStackState;
-		while (prevStackState != 0 && prevStackState->_wordnum > 0) {
-			words.insert(words.begin(), prevStackState->_strlastWord);
+		while (prevStackState != 0 && !prevStackState->_bStart) {
+			preSepStates.insert(preSepStates.begin(), prevStackState);
 			prevStackState = prevStackState->_prevStackState;
+		}
+		//will add results
+		static int state_num;
+		state_num = preSepStates.size();
+		if (state_num != _word_count){
+			std::cout << "bug exists: " << state_num << " " << _word_count << std::endl;
+		}
+		for (int idx = 0; idx < state_num; idx++){
+			words.push_back(preSepStates[idx]->_word);
 		}
 	}
 
 
 	void getGoldAction(const std::vector<std::string>& segments, CAction& ac) const {
-		if (_nextPosition == _characterSize) {
+		if (_next_index == _char_size) {
 			ac.set(CAction::FIN);
 			return;
 		}
-		if (_nextPosition == 0) {
+		if (_next_index == 0) {
 			ac.set(CAction::SEP);
 			return;
 		}
 
-		if (_nextPosition > 0 && _nextPosition < _characterSize) {
+		if (_next_index > 0 && _next_index < _char_size) {
 			// should have a check here to see whether the words are match, but I did not do it here
-			if (_strlastWord.length() == segments[_wordnum - 1].length()) {
+			if (_word.length() == segments[_word_count - 1].length()) {
 				ac.set(CAction::SEP);
 				return;
 			}
@@ -205,13 +219,13 @@ public:
 
 	// we did not judge whether history actions are match with current state.
 	void getGoldAction(const CStateItem* goldState, CAction& ac) const{
-		if (_nextPosition > goldState->_nextPosition || _nextPosition < 0) {
+		if (_next_index > goldState->_next_index || _next_index < 0) {
 			ac.set(CAction::NO_ACTION);
 			return;
 		}
 		const CStateItem *prevState = goldState->_prevState;
 		CAction curAction = goldState->_lastAction;
-		while (_nextPosition < prevState->_nextPosition) {
+		while (_next_index < prevState->_next_index) {
 			curAction = prevState->_lastAction;
 			prevState = prevState->_prevState;
 		}
@@ -221,15 +235,15 @@ public:
 	void getCandidateActions(vector<CAction> & actions) const{
 		actions.clear();
 		static CAction ac;
-		if (_nextPosition == 0){
+		if (_next_index == 0){
 			ac.set(CAction::SEP);
 			actions.push_back(ac);
 		}
-		else if (_nextPosition == _characterSize){
+		else if (_next_index == _char_size){
 			ac.set(CAction::FIN);
 			actions.push_back(ac);
 		}
-		else if (_nextPosition > 0 && _nextPosition < _characterSize){
+		else if (_next_index > 0 && _next_index < _char_size){
 			ac.set(CAction::SEP);
 			actions.push_back(ac);
 			ac.set(CAction::APP);
@@ -243,7 +257,7 @@ public:
 
 	inline std::string str() const{
 		stringstream curoutstr;
-		curoutstr << "score: " << _score.val(0, 0) << " ";
+		curoutstr << "score: " << _score->val(0, 0) << " ";
 		curoutstr << "seg:";
 		std::vector<std::string> words;
 		getSegResults(words);
@@ -256,67 +270,65 @@ public:
 
 
 public:
-	inline void computeScore(Graph *cg){
+	inline void computeNextScore(Graph *cg, const vector<CAction>& acs){
 		if (_bStart){
-			_current.forward(cg, _lastAction, _prevState->_atomFeat, NULL);
+			_nextscores.forward(cg, acs, _atomFeat, NULL);
 		}
 		else{
-			_current.forward(cg, _lastAction, _prevState->_atomFeat, &(_prevState->_score));
+			_nextscores.forward(cg, acs, _atomFeat, _score);
 		}
 	}
 
-	inline void collectFeat(ModelParams* params){
-		_prevState->_atomFeat.collectFeatures(_lastAction, params);
+	inline void collectFeat(ModelParams* model_params){
+		_prevState->_atomFeat.collectFeatures(_lastAction, model_params);
 	}
 
-	inline void prepare(const unordered_set<string>& dicts, ModelParams* params){
-		_atomFeat.str_C0 = _nextPosition < _characterSize ? _pCharacters->at(_nextPosition) : nullkey;
-		_atomFeat.str_1C = _nextPosition > 0 ? _pCharacters->at(_nextPosition - 1) : nullkey;
-		_atomFeat.str_2C = _nextPosition > 1 ? _pCharacters->at(_nextPosition - 2) : nullkey;
+	inline void prepare(HyperParams* hyper_params, ModelParams* model_params){
+		static int idx, length, p1wstart, p1wend;
+		_atomFeat.str_C0 = _next_index < _char_size ? _chars->at(_next_index) : nullkey;
+		_atomFeat.str_1C = _next_index > 0 && _next_index - 1 < _char_size ? _chars->at(_next_index - 1) : nullkey;
+		_atomFeat.str_2C = _next_index > 1 && _next_index - 2 < _char_size ? _chars->at(_next_index - 2) : nullkey;
 
-		_atomFeat.str_CT0 = _nextPosition < _characterSize ? wordtype(_atomFeat.str_C0) : nullkey;
-		_atomFeat.str_1CT = _nextPosition > 0 ? wordtype(_atomFeat.str_1C) : nullkey;
-		_atomFeat.str_2CT = _nextPosition > 1 ? wordtype(_atomFeat.str_2C) : nullkey;
+		_atomFeat.str_CT0 = _next_index < _char_size ? wordtype(_atomFeat.str_C0) : nullkey;
+		_atomFeat.str_1CT = _next_index > 0 && _next_index - 1 < _char_size ? wordtype(_atomFeat.str_1C) : nullkey;
+		_atomFeat.str_2CT = _next_index > 1 && _next_index - 2 < _char_size ? wordtype(_atomFeat.str_2C) : nullkey;
 
-		_atomFeat.str_1W = _lastWordEnd == -1 ? nullkey : _strlastWord;
-		_atomFeat.str_1Wc0 = _lastWordEnd == -1 ? nullkey : _pCharacters->at(_lastWordStart);
-		_atomFeat.str_1WD = _lastWordEnd == -1 ? nullkey : (dicts.find(_atomFeat.str_1W) != dicts.end() ? "iv" : "oov");
+		_atomFeat.str_1W = _wend == -1 ? nullkey : _word;
+		_atomFeat.str_1Wc0 = _wend == -1 ? nullkey : _chars->at(_wstart);
+
+		_atomFeat.sid_1WD = _wend == -1 ? 0 : (hyper_params->dicts.find(_atomFeat.str_1W) != hyper_params->dicts.end() ? 1 : 2);
+
 		{
-			int length = _lastWordEnd - _lastWordStart + 1;
+			length = _wend - _wstart + 1;
 			if (length > 5)
 				length = 5;
-			stringstream curss;
-			curss << length;
-			_atomFeat.str_1WL = _lastWordEnd == -1 ? nullkey : curss.str();
-			_atomFeat.int_1WL = length;
+			_atomFeat.sid_1WL = _wend == -1 ? 0 : length;
 		}
-		if (_lastWordEnd == -1){
+
+		if (_wend == -1){
 			_atomFeat.str_1Wci.clear();
 		}
 		else{
 			_atomFeat.str_1Wci.clear();
-			for (int idx = _lastWordStart; idx < _lastWordEnd; idx++){
-				_atomFeat.str_1Wci.push_back(_pCharacters->at(idx));
+			for (int idx = _wstart; idx < _wend; idx++){
+				_atomFeat.str_1Wci.push_back(_chars->at(idx));
 			}
 		}
 
-
-		int last2WordStart = _prevStackState == 0 ? -1 : _prevStackState->_lastWordStart;
-		int last2WordEnd = _prevStackState == 0 ? -1 : _prevStackState->_lastWordEnd;
-		_atomFeat.str_2W = last2WordEnd == -1 ? nullkey : _prevStackState->_strlastWord;
-		_atomFeat.str_2Wc0 = last2WordEnd == -1 ? nullkey : _pCharacters->at(last2WordStart);
-		_atomFeat.str_2Wcn = last2WordEnd == -1 ? nullkey : _pCharacters->at(last2WordEnd);
+		p1wstart = _prevStackState == 0 ? -1 : _prevStackState->_wstart;
+		p1wend = _prevStackState == 0 ? -1 : _prevStackState->_wend;
+		_atomFeat.str_2W = p1wend == -1 ? nullkey : _prevStackState->_word;
+		_atomFeat.str_2Wc0 = p1wend == -1 ? nullkey : _chars->at(p1wstart);
+		_atomFeat.str_2Wcn = p1wend == -1 ? nullkey : _chars->at(p1wend);
 		{
-			int length = last2WordEnd - last2WordStart + 1;
+			length = p1wend - p1wstart + 1;
 			if (length > 5)
 				length = 5;
-			stringstream curss;
-			curss << length;
-			_atomFeat.str_2WL = last2WordEnd == -1 ? nullkey : curss.str();
+			_atomFeat.sid_2WL = p1wend == -1 ? 0 : length;
 		}
 
-		if (params != NULL){
-			_atomFeat.convert2Id(params);
+		if (model_params != NULL){
+			_atomFeat.convert2Id(model_params);
 		}
 	}
 };
@@ -325,10 +337,16 @@ public:
 class CScoredState {
 public:
 	CStateItem *item;
+	int ac;
 	dtype score;
+	bool bGold;
 
 public:
-	CScoredState() : item(0), score(0) {
+	CScoredState() : item(0), score(0), ac(0), bGold(0){
+	}
+
+	CScoredState(const CScoredState& other) : item(other.item), score(other.score), ac(other.ac), bGold(other.bGold){
+
 	}
 
 public:

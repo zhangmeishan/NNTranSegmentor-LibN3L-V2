@@ -52,10 +52,7 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		}
 	}
 
-	m_driver._modelparams.actions.clear();
-	m_driver._modelparams.wordLengths.clear();
-	m_driver._modelparams.dictionarys.clear();
-	m_driver._modelparams.charTypes.clear();
+	unordered_map<string, int> charType_stat;
 
 	vector<CStateItem> state(m_driver._hyperparams.maxlength + 1);
 	vector<string> output;
@@ -70,13 +67,8 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		state[actionNum].setInput(&instance.chars);
 		while (!state[actionNum].IsTerminated()) {
 			state[actionNum].getGoldAction(instance.words, answer);
-			m_driver._modelparams.actions.from_string(answer.str());
-
-			state[actionNum].prepare(m_driver._hyperparams.dicts, NULL);
-			m_driver._modelparams.wordLengths.from_string(state[actionNum]._atomFeat.str_1WL);
-			m_driver._modelparams.dictionarys.from_string(state[actionNum]._atomFeat.str_1WD);
-			m_driver._modelparams.charTypes.from_string(state[actionNum]._atomFeat.str_CT0);
-
+			state[actionNum].prepare(&m_driver._hyperparams, NULL);
+			charType_stat[state[actionNum]._atomFeat.str_CT0]++;
 			state[actionNum].move(&(state[actionNum + 1]), answer);
 			actionNum++;
 		}
@@ -103,25 +95,20 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 			break;
 	}
 
+	charType_stat[nullkey] = 1;
+	m_driver._modelparams.charTypes.initial(charType_stat);
 
 	cout << numInstance << " " << endl;
-	cout << "Action num: " << m_driver._modelparams.actions.size() << endl;
 	cout << "Total word num: " << word_stat.size() << endl;
 	cout << "Total char num: " << char_stat.size() << endl;
 
 	cout << "Remain word num: " << m_driver._modelparams.words.size() << endl;
 	cout << "Remain char num: " << m_driver._modelparams.chars.size() << endl;
 	cout << "Remain charType num: " << m_driver._modelparams.charTypes.size() << endl;
-	cout << "Remain wordLength num: " << m_driver._modelparams.wordLengths.size() << endl;
-	cout << "Remain dictionary type  num: " << m_driver._modelparams.dictionarys.size() << endl;
-
 
 	cout << "Dictionary word num: " << m_driver._hyperparams.dicts.size() << endl;
 
-	m_driver._modelparams.actions.set_fixed_flag(true);
-	m_driver._modelparams.wordLengths.set_fixed_flag(true);
-	m_driver._modelparams.dictionarys.set_fixed_flag(true);
-	m_driver._modelparams.charTypes.set_fixed_flag(true);
+
 
 	return 0;
 }
@@ -398,6 +385,7 @@ int main(int argc, char* argv[]) {
 	std::string outputFile = "";
 	bool bTrain = false;
 	dsr::Argument_helper ah;
+
 
 	ah.new_flag("l", "learn", "train or test", bTrain);
 	ah.new_named_string("train", "trainCorpus", "named_string", "training corpus to train a model, must when training", trainFile);

@@ -19,16 +19,17 @@ public:
 	string str_2CT;
 
 	string str_1W;
-	string str_1WD;
-	string str_1WL;
-	int int_1WL;
 	string str_1Wc0;
 	vector<string> str_1Wci;
 
 	string str_2W;
-	string str_2WL;
 	string str_2Wc0;
 	string str_2Wcn;
+
+public:
+	int sid_1WD;
+	int sid_1WL;
+	int sid_2WL;
 
 public:
 	int sid_C0;
@@ -40,13 +41,10 @@ public:
 	int sid_2CT;
 
 	int sid_1W;
-	int sid_1WD;
-	int sid_1WL;
 	int sid_1Wc0;
 	vector<int> sid_1Wci;
 
 	int sid_2W;
-	int sid_2WL;
 	int sid_2Wc0;
 	int sid_2Wcn;
 
@@ -61,14 +59,10 @@ public:
 		str_2CT = "";
 
 		str_1W = "";
-		str_1WD = "";
-		str_1WL = "";
-		int_1WL = 0;
 		str_1Wc0 = "";
 		str_1Wci.clear();
 
 		str_2W = "";
-		str_2WL = "";
 		str_2Wc0 = "";
 		str_2Wcn = "";		
 
@@ -104,8 +98,6 @@ public:
 		sid_2CT = model->charTypes.from_string(str_2CT);
 
 		sid_1W = model->words.from_string(str_1W);
-		sid_1WD = model->dictionarys.from_string(str_1WD);
-		sid_1WL = model->wordLengths.from_string(str_1WL);
 		sid_1Wc0 = model->chars.from_string(str_1Wc0);
 		sid_1Wci.resize(str_1Wci.size());
 		for (int idx = 0; idx < str_1Wci.size(); idx++){
@@ -113,7 +105,6 @@ public:
 		}
 
 		sid_2W = model->words.from_string(str_2W);
-		sid_2WL = model->wordLengths.from_string(str_2WL);
 		sid_2Wc0 = model->chars.from_string(str_2Wc0);
 		sid_2Wcn = model->chars.from_string(str_2Wcn);
 	}
@@ -131,7 +122,7 @@ public:
 			model->sep_2CT_1CT_CT0.collectFeature(sid_2CT, sid_1CT, sid_CT0);
 			model->sep_1W.collectFeature(sid_1W);
 			model->sep_1WD_1WL.collectFeature(sid_1WD, sid_1WL);
-			if (int_1WL == 1){
+			if (sid_1WL == 1){
 				model->sep_1WSingle.collectFeature(sid_1W);
 			}
 			model->sep_1W_C0.collectFeature(sid_1W, sid_C0);
