@@ -133,6 +133,8 @@ private:
 			}
 			pBestNode->loss.coeffRef(0) = 1.0 / num;
 
+			pGoldNode->lossed = true;
+			pBestNode->lossed = true;
 			return 1.0;
 		}
 
@@ -141,6 +143,7 @@ private:
 	
 	dtype loss_google(int num){
 		int maxstep = _pcg->outputs.size();
+		if(maxstep == 0) return 1.0;
 		_eval.correct_label_count += maxstep;
 		static PNode pBestNode = NULL;
 		static PNode pGoldNode = NULL;
@@ -150,7 +153,7 @@ private:
 		static vector<dtype> scores;
 		dtype cost = 0.0;
 
-		for (int step = 0; step < maxstep; step++){
+		for (int step = maxstep - 1; step < maxstep; step++){
 			curcount = _pcg->outputs[step].size();
 			max = 0.0;
 			goldIndex = -1;
@@ -173,6 +176,7 @@ private:
 				pGoldNode->loss = Mat::Zero(1, 1);
 			}
 			pGoldNode->loss.coeffRef(0) = -1.0 / num;
+			pGoldNode->lossed = true;
 
 			max = pCurNode->val.coeffRef(0);
 			sum = 0.0;
@@ -190,6 +194,7 @@ private:
 					pCurNode->loss = Mat::Zero(1, 1);
 				}
 				pCurNode->loss.coeffRef(0) += scores[idx] / (sum * num);
+				pCurNode->lossed = true;
 			}
 
 			cost += -log(scores[goldIndex] / sum);

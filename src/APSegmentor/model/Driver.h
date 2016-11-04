@@ -70,7 +70,7 @@ public:
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss(num);  
+		cost += loss(num);
 
 		_pcg->backward();
 
@@ -133,12 +133,15 @@ private:
 			}
 			pBestNode->loss.coeffRef(0) = 1.0 / num;
 
+			pGoldNode->lossed = true;
+			pBestNode->lossed = true;
 			return 1.0;
 		}
 
 		return 0.0;
 	}
 	
+
 	void predict(vector<string>& result){
 		int step = _pcg->outputs.size();
 		_pcg->states[step - 1][0].getSegResults(result);

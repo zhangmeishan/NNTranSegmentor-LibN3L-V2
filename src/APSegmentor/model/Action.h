@@ -18,7 +18,7 @@
 // for segmentation, there are only threee valid operations
 class CAction {
 public:
-  enum CODE {NO_ACTION=0, SEP=1, APP=2, FIN=3, IDLE=4};
+	enum CODE { SEP = 0, APP = 1, FIN = 2, NO_ACTION = 3};
   unsigned long _code;
 
 public:
@@ -42,16 +42,14 @@ public:
    inline bool isSeparate() const { return _code==SEP; }
    inline bool isAppend() const { return _code==APP; }
    inline bool isFinish() const { return _code==FIN; }
-   inline bool isIdle() const { return _code>=IDLE; }
 
 public:
    inline std::string str() const {
      if (isNone()) { return "NONE"; }
-     if (isIdle()) { return "IDLE"; }
      if (isSeparate()) { return "SEP"; }
      if (isAppend()) { return "APP"; }
      if (isFinish()) { return "FIN"; }
-     return "IDLE";
+     return "NONE";
    }
 
 public:
@@ -71,9 +69,6 @@ inline std::istream & operator >> (std::istream &is, CAction &action) {
 
   if (tmp=="NONE") {
     action.clear();
-  }
-  else if(tmp=="IDLE"){
-    action._code = CAction::IDLE;
   }
   else if(tmp=="SEP"){
     action._code = CAction::SEP;

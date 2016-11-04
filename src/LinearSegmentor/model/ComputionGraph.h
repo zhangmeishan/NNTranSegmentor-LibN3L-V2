@@ -90,7 +90,7 @@ public:
 		//second step, build graph
 		static vector<CStateItem*> lastStates;
 		static CStateItem* pGenerator;
-		static int step, offset, nodeIndex;
+		static int step, offset;
 		static std::vector<CAction> actions; // actions to apply for a candidate
 		static CScoredState scored_action; // used rank actions
 		static COutput output;
@@ -116,7 +116,7 @@ public:
 			answer.clear();
 			per_step_output.clear();
 			correct_action_scored = false;
-			if (train) answer = step < goldAC->size() ? (*goldAC)[step] : CAction(CAction::IDLE);
+			if (train) answer = (*goldAC)[step];
 			beam.clear();
 			for (int idx = 0; idx < lastStates.size(); idx++){
 				pGenerator = lastStates[idx];
@@ -125,9 +125,8 @@ public:
 				scored_action.item = pGenerator;
 				for (int idy = 0; idy < actions.size(); ++idy) {
 					scored_action.ac = actions[idy]._code;
-					nodeIndex = actions[idy].isAppend() ? 0 : 1;
-					scored_action.score = pGenerator->_nextscores.outputs[nodeIndex].val.coeff(0, 0);
-					output.in = &(pGenerator->_nextscores.outputs[nodeIndex]);
+					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val.coeff(0, 0);
+					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
 					if (pGenerator->_bGold && actions[idy] == answer){
 						scored_action.bGold = true; 
 						correct_action_scored = true;
@@ -166,8 +165,7 @@ public:
 				action.set(beam[idx].ac);
 				pGenerator->move(&(states[step][idx]), action);
 				states[step][idx]._bGold = beam[idx].bGold;
-				nodeIndex = action.isAppend() ? 0 : 1;
-				states[step][idx]._score = &(pGenerator->_nextscores.outputs[nodeIndex]);
+				states[step][idx]._score = &(pGenerator->_nextscores.outputs[beam[idx].ac]);
 			}			
 
 			if (states[step][0].IsTerminated()){

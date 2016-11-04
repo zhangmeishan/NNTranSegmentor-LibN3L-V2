@@ -11,6 +11,7 @@ struct HyperParams{
 	//required
 	int beam;
 	int maxlength;
+	int action_num;
 	dtype delta;
 	unordered_set<string> dicts;  // dictionary in order to extract iv/oov features.
 
@@ -18,10 +19,11 @@ struct HyperParams{
 	dtype nnRegular; // for optimization
 	dtype adaAlpha;  // for optimization
 	dtype adaEps; // for optimization
+	dtype dropProb;
 
 public:
 	HyperParams(){
-		maxlength = 256;
+		maxlength = max_sentence_clength + 1;
 		bAssigned = false;
 	}
 
@@ -35,6 +37,7 @@ public:
 		nnRegular = opt.regParameter;
 		adaAlpha = opt.adaAlpha;
 		adaEps = opt.adaEps;
+		dropProb = opt.dropProb;
 	}
 
 	void clear(){

@@ -177,6 +177,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	}
 
 	createAlphabet(trainInsts);
+	m_driver._hyperparams.action_num = CAction::FIN + 1;
 	m_driver._hyperparams.setRequared(m_options);
 	m_driver.initial();
 
@@ -271,6 +272,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		}
 
 		if (bEvaluate && devNum > 0) {
+			clock_t time_start = clock();
+			std::cout << "Dev start." << std::endl;
 			bCurIterBetter = false;
 			if (!m_options.outBest.empty())
 				decodeInstResults.clear();
@@ -282,6 +285,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 					decodeInstResults.push_back(curDecodeInst);
 				}
 			}
+			std::cout << "Dev finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
 			std::cout << "dev:" << std::endl;
 			metric_dev.print();
 
@@ -291,6 +295,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 			}
 
 			if (testNum > 0) {
+				time_start = clock();
+				std::cout << "Test start." << std::endl;
 				if (!m_options.outBest.empty())
 					decodeInstResults.clear();
 				metric_test.reset();
@@ -301,6 +307,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 						decodeInstResults.push_back(curDecodeInst);
 					}
 				}
+				std::cout << "Test finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
 				std::cout << "test:" << std::endl;
 				metric_test.print();
 
@@ -310,6 +317,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 			}
 
 			for (int idx = 0; idx < otherInsts.size(); idx++) {
+				time_start = clock();
 				std::cout << "processing " << m_options.testFiles[idx] << std::endl;
 				if (!m_options.outBest.empty())
 					decodeInstResults.clear();
@@ -321,6 +329,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 						decodeInstResults.push_back(curDecodeInst);
 					}
 				}
+				std::cout << "Test finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
 				std::cout << "test:" << std::endl;
 				metric_test.print();
 

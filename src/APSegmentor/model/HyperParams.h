@@ -11,6 +11,7 @@ struct HyperParams{
 	//required
 	int beam;
 	int maxlength;
+	int action_num;
 	dtype delta;
 	unordered_set<string> dicts;  // dictionary in order to extract iv/oov features.
 
@@ -21,7 +22,7 @@ struct HyperParams{
 
 public:
 	HyperParams(){
-		maxlength = 256;
+		maxlength = max_sentence_clength + 1;
 		bAssigned = false;
 	}
 
