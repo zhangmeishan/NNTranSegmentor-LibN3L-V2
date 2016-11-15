@@ -23,8 +23,6 @@ public:
 	// node instances
 	CStateItem start;
 	vector<vector<CStateItem> > states; 
-	//vector<NRHeap<CScoredState, CScoredState_Compare> >  beams;
-	//vector<vector<CStateItem*> > outputs; // to define loss
 	vector<vector<COutput> > outputs;
 
 private:
@@ -43,18 +41,18 @@ public:
 
 public:
 	//allocate enough nodes 
-	inline void initial(ModelParams& model, HyperParams& opts){
+	inline void initial(ModelParams& model, HyperParams& opts, AlignedMemoryPool* mem){
 		std::cout << "state size: " << sizeof(CStateItem) << std::endl;
 		std::cout << "action node size: " << sizeof(ActionedNodes) << std::endl;
 		states.resize(opts.maxlength + 1);
 		for (int idx = 0; idx < states.size(); idx++){
 			states[idx].resize(opts.beam);
 			for (int idy = 0; idy < states[idx].size(); idy++){
-				states[idx][idy].initial(model, opts);
+				states[idx][idy].initial(model, opts, mem);
 			}
 		}
 		start.clear();
-		start.initial(model, opts);
+		start.initial(model, opts, mem);
 
 		//beams.resize(opts.maxlength + 1);
 		//for (int idx = 0; idx < states.size(); idx++){
@@ -125,8 +123,6 @@ public:
 				scored_action.item = pGenerator;
 				for (int idy = 0; idy < actions.size(); ++idy) {
 					scored_action.ac = actions[idy]._code;
-					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val.coeff(0, 0);
-					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
 					if (pGenerator->_bGold && actions[idy] == answer){
 						scored_action.bGold = true; 
 						correct_action_scored = true;
@@ -137,6 +133,8 @@ public:
 						scored_action.bGold = false;
 						output.bGold = false;
 					}
+					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val[0];
+					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
 					beam.add_elem(scored_action);
 					per_step_output.push_back(output);
 				}

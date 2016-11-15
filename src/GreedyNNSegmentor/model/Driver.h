@@ -21,7 +21,7 @@ using namespace std;
 //re-implementation of Yue and Clark ACL (2007)
 class Driver {
 public:
-  Driver(size_t memsize) : aligned_mem(memsize){
+  Driver() {
 	  _pcg = NULL;
   }
 
@@ -40,8 +40,6 @@ public:
 	CheckGrad _checkgrad;
 	ModelUpdate _ada;  // model update
 
-	AlignedMemoryPool aligned_mem;
-
 public:
 
 	inline void initial() {
@@ -56,9 +54,7 @@ public:
 		_hyperparams.print();
 
 		_pcg = new ComputionGraph();
-		_pcg->initial(_modelparams, _hyperparams, &aligned_mem);
-
-		std::cout << "allocated memory: " << aligned_mem.capacity << ", total required memory: " << aligned_mem.required << ", perc = " << aligned_mem.capacity*1.0 / aligned_mem.required << std::endl;
+		_pcg->initial(_modelparams, _hyperparams);
 
 		setUpdateParameters(_hyperparams.nnRegular, _hyperparams.adaAlpha, _hyperparams.adaEps);
 	}
@@ -69,12 +65,16 @@ public:
     _eval.reset();
     dtype cost = 0.0;
 	int num = sentences.size();
+	int count = 0;
+	for (int idx = 0; idx < num; idx++) {
+		count += sentences[idx].size();
+	}
 	for (int idx = 0; idx < num; idx++) {
 		_pcg->forward(&sentences[idx], &goldACs[idx]);
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss_google(num);
+		cost += loss_google(count);
 
 		_pcg->backward();
 
@@ -118,7 +118,7 @@ private:
 		int offset = _pcg->outputs[step - 1].size();
 		for (int idx = 0; idx < offset; idx++){
 			pCurNode = _pcg->outputs[step - 1][idx].in;
-			if (pBestNode == NULL || pCurNode->val[0] > pBestNode->val[0]){
+			if (pBestNode == NULL || pCurNode->val.coeffRef(0) > pBestNode->val.coeffRef(0)){
 				pBestNode = pCurNode;
 			}
 			if (_pcg->outputs[step - 1][idx].bGold){
@@ -127,9 +127,15 @@ private:
 		}
 
 		if (pGoldNode != pBestNode){
-			pGoldNode->loss[0] = -1.0 / num;
+			if (pGoldNode->loss.size() == 0){
+				pGoldNode->loss = Mat::Zero(1, 1);
+			}
+			pGoldNode->loss.coeffRef(0) = -1.0 / num;
 
-			pBestNode->loss[0] = 1.0 / num;
+			if (pBestNode->loss.size() == 0){
+				pBestNode->loss = Mat::Zero(1, 1);
+			}
+			pBestNode->loss.coeffRef(0) = 1.0 / num;
 
 			pGoldNode->lossed = true;
 			pBestNode->lossed = true;
@@ -151,14 +157,14 @@ private:
 		static vector<dtype> scores;
 		dtype cost = 0.0;
 
-		for (int step = maxstep - 1; step < maxstep; step++){
+		for (int step = 0; step < maxstep; step++){
 			curcount = _pcg->outputs[step].size();
 			max = 0.0;
 			goldIndex = -1;
 			pBestNode = pGoldNode = NULL;
 			for (int idx = 0; idx < curcount; idx++){
 				pCurNode = _pcg->outputs[step][idx].in;
-				if (pBestNode == NULL || pCurNode->val[0] > pBestNode->val[0]){
+				if (pBestNode == NULL || pCurNode->val.coeffRef(0) > pBestNode->val.coeffRef(0)){
 					pBestNode = pCurNode;
 				}
 				if (_pcg->outputs[step][idx].bGold){
@@ -170,21 +176,28 @@ private:
 			if (goldIndex == -1){
 				std::cout << "impossible" << std::endl;
 			}
-			pGoldNode->loss[0] = -1.0 / num;
+			if (pGoldNode->loss.size() == 0){
+				pGoldNode->loss = Mat::Zero(1, 1);
+			}
+			pGoldNode->loss.coeffRef(0) = -1.0 / num;
 			pGoldNode->lossed = true;
 
-			max = pCurNode->val[0];
+			max = pCurNode->val.coeffRef(0);
 			sum = 0.0;
 			scores.resize(curcount);
 			for (int idx = 0; idx < curcount; idx++){
 				pCurNode = _pcg->outputs[step][idx].in;
-				scores[idx] = exp(pCurNode->val[0] - max);
+				scores[idx] = exp(pCurNode->val.coeffRef(0) - max);
 				sum += scores[idx];
 			}
 
 			for (int idx = 0; idx < curcount; idx++){
 				pCurNode = _pcg->outputs[step][idx].in;
-				pCurNode->loss[0] += scores[idx] / (sum * num);
+
+				if (pCurNode->loss.size() == 0){
+					pCurNode->loss = Mat::Zero(1, 1);
+				}
+				pCurNode->loss.coeffRef(0) += scores[idx] / (sum * num);
 				pCurNode->lossed = true;
 			}
 
@@ -198,7 +211,7 @@ private:
 
 	void predict(vector<string>& result){
 		int step = _pcg->outputs.size();
-		_pcg->states[step - 1][0].getSegResults(result);
+		_pcg->states[step - 1].getSegResults(result);
 	}
 
 

@@ -49,7 +49,7 @@ public:
 			std::cout << "hyper parameter initialization Error, Please check!" << std::endl;
 			return;
 		}
-		if (!_modelparams.initial(_hyperparams)){
+		if (!_modelparams.initial(_hyperparams, &aligned_mem)){
 			std::cout << "model parameter initialization Error, Please check!" << std::endl;
 			return;
 		}		
@@ -74,7 +74,7 @@ public:
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss_google(num);
+		cost += loss(num);
 
 		_pcg->backward();
 
@@ -88,18 +88,11 @@ public:
 	  predict(result);
   }
 
-  void extractFeat(const std::vector<std::vector<string> >& sentences, const vector<vector<CAction> >& goldACs){
-	  int num = sentences.size();
-	  for (int idx = 0; idx < num; idx++) {
-		  _pcg->extractFeat(&sentences[idx], &goldACs[idx]);
-	  }
-  }
-
   void updateModel() {
 	  if (_ada._params.empty()){
 		  _modelparams.exportModelParams(_ada);
 	  }
-	  _ada.update();
+	  _ada.update(10);
   }
 
   void writeModel();
@@ -189,6 +182,10 @@ private:
 			}
 
 			cost += -log(scores[goldIndex] / sum);
+
+			//if (std::isnan(cost)) {
+			//	std::cout << "debug" << std::endl;
+			//}
 		
 		}
 

@@ -38,6 +38,8 @@ public:
 	int wordHiddenSize;
 	int wordRNNHiddenSize;
 	bool wordEmbFineTune;
+	bool wordEmbNormalize;
+	string wordEmbFile;
 
 	int charEmbSize;
 	int bicharEmbSize;
@@ -45,7 +47,11 @@ public:
 	int charHiddenSize;
 	int charRNNHiddenSize;
 	bool charEmbFineTune;
+	bool charEmbNormalize;
 	bool bicharEmbFineTune;
+	bool bicharEmbNormalize;
+	string charEmbFile;
+	string bicharEmbFile;
 
 	int actionEmbSize;
 	int actionNgram;
@@ -71,8 +77,8 @@ public:
 		adaEps = 1e-6;
 		adaAlpha = 0.01;
 		regParameter = 1e-8;
-		dropProb = 0.0;
-		delta = 0.1;
+		dropProb = -1;
+		delta = 0.2;
 		clip = -1.0;
 		oovRatio = 0.2;
 		beam = 16;
@@ -80,12 +86,14 @@ public:
 		sepHiddenSize = 100;
 		appHiddenSize = 80;
 
-		wordEmbSize = 0;
+		wordEmbSize = 50;
 		lengthEmbSize = 20;
 		wordNgram = 2;
 		wordHiddenSize = 150;
 		wordRNNHiddenSize = 100;
-		wordEmbFineTune = true;
+		wordEmbFineTune = false;
+		wordEmbNormalize = true;
+		wordEmbFile = "";
 
 		charEmbSize = 50;
 		bicharEmbSize = 50;
@@ -93,7 +101,11 @@ public:
 		charHiddenSize = 150;
 		charRNNHiddenSize = 100;
 		charEmbFineTune = false;
+		charEmbNormalize = true;
 		bicharEmbFineTune = false;
+		bicharEmbNormalize = true;
+		charEmbFile = "";
+		bicharEmbFile = "";
 
 		actionEmbSize = 20;
 		actionNgram = 2;
@@ -166,6 +178,10 @@ public:
 				wordRNNHiddenSize = atoi(pr.second.c_str());
 			if (pr.first == "wordEmbFineTune")
 				wordEmbFineTune = (pr.second == "true") ? true : false;
+			if (pr.first == "wordEmbNormalize")
+				wordEmbNormalize = (pr.second == "true") ? true : false;
+			if (pr.first == "wordEmbFile")
+				wordEmbFile = pr.second;
 
 			if (pr.first == "charEmbSize")
 				charEmbSize = atoi(pr.second.c_str());
@@ -179,8 +195,16 @@ public:
 				charRNNHiddenSize = atoi(pr.second.c_str());
 			if (pr.first == "charEmbFineTune")
 				charEmbFineTune = (pr.second == "true") ? true : false;
+			if (pr.first == "charEmbNormalize")
+				charEmbNormalize = (pr.second == "true") ? true : false;
 			if (pr.first == "bicharEmbFineTune")
 				bicharEmbFineTune = (pr.second == "true") ? true : false;
+			if (pr.first == "bicharEmbNormalize")
+				bicharEmbNormalize = (pr.second == "true") ? true : false;
+			if (pr.first == "charEmbFile")
+				charEmbFile = pr.second;
+			if (pr.first == "bicharEmbFile")
+				bicharEmbFile = pr.second;
 
 			if (pr.first == "actionEmbSize")
 				actionEmbSize = atoi(pr.second.c_str());
@@ -235,6 +259,8 @@ public:
 		std::cout << "wordHiddenSize = " << wordHiddenSize << std::endl;
 		std::cout << "wordRNNHiddenSize = " << wordRNNHiddenSize << std::endl;
 		std::cout << "wordEmbFineTune = " << wordEmbFineTune << std::endl;
+		std::cout << "wordEmbNormalize = " << wordEmbNormalize << std::endl;
+		std::cout << "wordEmbFile = " << wordEmbFile << std::endl;
 
 		std::cout << "charEmbSize = " << charEmbSize << std::endl;
 		std::cout << "bicharEmbSize = " << bicharEmbSize << std::endl;
@@ -242,7 +268,11 @@ public:
 		std::cout << "charHiddenSize = " << charHiddenSize << std::endl;
 		std::cout << "charRNNHiddenSize = " << charRNNHiddenSize << std::endl;
 		std::cout << "charEmbFineTune = " << charEmbFineTune << std::endl;
+		std::cout << "charEmbNormalize = " << charEmbNormalize << std::endl;
 		std::cout << "bicharEmbFineTune = " << bicharEmbFineTune << std::endl;
+		std::cout << "bicharEmbNormalize = " << bicharEmbNormalize << std::endl;
+		std::cout << "charEmbFile = " << charEmbFile << std::endl;
+		std::cout << "bicharEmbFile = " << bicharEmbFile << std::endl;
 
 		std::cout << "actionEmbSize = " << actionEmbSize << std::endl;
 		std::cout << "actionNgram = " << actionNgram << std::endl;

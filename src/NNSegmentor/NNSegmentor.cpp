@@ -5,7 +5,7 @@
  *      Author: mszhang
  */
 
-#include "LinearSegmentor.h"
+#include "NNSegmentor.h"
 
 #include "Argument_helper.h"
 
@@ -27,6 +27,7 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 
 	unordered_map<string, int> word_stat;
 	unordered_map<string, int> char_stat;
+	unordered_map<string, int> bichar_stat;
 
 	assert(numInstance > 0);
 	int count = 0;
@@ -37,13 +38,41 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		}
 		for (int idx = 0; idx < instance.charsize(); idx++) {
 			char_stat[instance.chars[idx]]++;
+			if (idx < instance.charsize() - 1){
+				bichar_stat[instance.chars[idx] + instance.chars[idx + 1]]++;
+			}
 		}
 		count += instance.wordsize();
 	}
-	word_stat[nullkey] = m_options.wordCutOff;
-	char_stat[nullkey] = m_options.charCutOff;
-	m_driver._modelparams.words.initial(word_stat, m_options.wordCutOff);
-	m_driver._modelparams.chars.initial(char_stat, m_options.charCutOff);
+	word_stat[nullkey] = m_options.wordCutOff + 1;
+	word_stat[unknownkey] = m_options.wordCutOff + 1;
+	char_stat[nullkey] = m_options.charCutOff + 1;
+	char_stat[unknownkey] = m_options.charCutOff + 1;
+	bichar_stat[nullkey] = m_options.bicharCutOff + 1;
+	bichar_stat[unknownkey] = m_options.bicharCutOff + 1;
+	m_driver._modelparams.words.initial(word_stat, 0);
+	m_driver._modelparams.chars.initial(char_stat, 0);
+
+	if (!m_options.wordEmbFineTune && m_options.wordEmbFile != ""){
+		m_driver._modelparams.embeded_words.initial(m_options.wordEmbFile);
+	}
+	if (!m_driver._modelparams.embeded_words.is_fixed()){
+		m_driver._modelparams.embeded_words.initial(word_stat, m_options.wordCutOff);
+	}
+
+	if (!m_options.charEmbFineTune && m_options.charEmbFile != ""){
+		m_driver._modelparams.embeded_chars.initial(m_options.charEmbFile);
+	}
+	if (!m_driver._modelparams.embeded_chars.is_fixed()){
+		m_driver._modelparams.embeded_chars.initial(char_stat, m_options.charCutOff);
+	}
+
+	if (!m_options.bicharEmbFineTune && m_options.bicharEmbFile != ""){
+		m_driver._modelparams.embeded_bichars.initial(m_options.bicharEmbFile);
+	}
+	if (!m_driver._modelparams.embeded_bichars.is_fixed()){
+		m_driver._modelparams.embeded_bichars.initial(bichar_stat, m_options.charCutOff);
+	}
 
 	static unordered_map<string, int>::const_iterator elem_iter;
 	for (elem_iter = word_stat.begin(); elem_iter != word_stat.end(); elem_iter++){
@@ -53,6 +82,7 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	}
 
 	unordered_map<string, int> charType_stat;
+	unordered_map<string, int> action_stat;
 
 	vector<CStateItem> state(m_driver._hyperparams.maxlength + 1);
 	vector<string> output;
@@ -65,12 +95,14 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		actionNum = 0;
 		state[actionNum].clear();
 		state[actionNum].setInput(&instance.chars);
+		action_stat[state[actionNum]._lastAction.str()]++;
 		while (!state[actionNum].IsTerminated()) {
 			state[actionNum].getGoldAction(instance.words, answer);
-			state[actionNum].prepare(&m_driver._hyperparams, NULL);
+			state[actionNum].prepare(&m_driver._hyperparams, NULL, NULL);
 			charType_stat[state[actionNum]._atomFeat.str_CT0]++;
 			state[actionNum].move(&(state[actionNum + 1]), answer);
 			actionNum++;
+			action_stat[answer.str()]++;
 		}
 
 		if (actionNum - 1 != instance.charsize()) {
@@ -97,6 +129,7 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 
 	charType_stat[nullkey] = 1;
 	m_driver._modelparams.charTypes.initial(charType_stat);
+	m_driver._modelparams.embeded_actions.initial(action_stat, 0);
 
 	cout << numInstance << " " << endl;
 	cout << "Total word num: " << word_stat.size() << endl;
@@ -177,6 +210,45 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	}
 
 	createAlphabet(trainInsts);
+
+	//lookup table setting
+	bool initial_successed = false;
+	if (m_options.wordEmbFile != ""){
+		initial_successed = m_driver._modelparams.word_table.initial(&m_driver._modelparams.embeded_words, m_options.wordEmbFile, m_options.wordEmbFineTune, m_options.wordEmbNormalize);
+		if (initial_successed){
+			m_options.wordEmbSize = m_driver._modelparams.word_table.nDim;
+		}
+	}
+	if (!initial_successed){
+		m_options.wordEmbFineTune = true;
+		m_driver._modelparams.word_table.initial(&m_driver._modelparams.embeded_words, m_options.wordEmbSize, true);
+	}
+
+	if (m_options.charEmbFile != ""){
+		initial_successed = m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbFile, m_options.charEmbFineTune, m_options.charEmbNormalize);
+		if (initial_successed){
+			m_options.charEmbSize = m_driver._modelparams.char_table.nDim;
+		}
+	}
+	if (!initial_successed){
+		m_options.charEmbFineTune = true;
+		m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbSize, true);
+	}
+
+	if (m_options.bicharEmbFile != ""){
+		
+		initial_successed = m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbFile, m_options.bicharEmbFineTune, m_options.bicharEmbNormalize);
+		if (initial_successed){
+			m_options.bicharEmbSize = m_driver._modelparams.bichar_table.nDim;
+		}
+	}
+	if (!initial_successed){
+		m_options.bicharEmbFineTune = true;
+		m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbSize, true);
+	}
+
+	m_driver._modelparams.action_table.initial(&m_driver._modelparams.embeded_actions, m_options.actionEmbSize, true);
+
 	m_driver._hyperparams.action_num = CAction::FIN + 1;
 	m_driver._hyperparams.setRequared(m_options);
 	m_driver.initial();
@@ -203,23 +275,6 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	static bool bCurIterBetter;
 	static vector<vector<string> > subInstances;
 	static vector<vector<CAction> > subInstGoldActions;
-
-	std::cout << "Collect gold-standard features..." << std::endl;
-	for (int idx = 0; idx < inputSize; idx++){
-		subInstances.clear();
-		subInstGoldActions.clear();
-		subInstances.push_back(trainInsts[idx].chars);
-		subInstGoldActions.push_back(trainInstGoldactions[idx]);
-		m_driver.extractFeat(subInstances, subInstGoldActions);
-		if ((idx + 1) % m_options.verboseIter == 0) {
-			cout << idx + 1 << " ";
-			if ((idx + 1) % (40 * m_options.verboseIter) == 0)
-				cout << std::endl;
-			cout.flush();
-		}
-	}
-	cout << inputSize << std::endl;
-	m_driver._modelparams.setFixed(m_options.base);
 
 	for (int iter = 0; iter < maxIter; ++iter) {
 		std::cout << "##### Iteration " << iter << std::endl;

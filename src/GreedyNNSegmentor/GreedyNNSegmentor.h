@@ -21,7 +21,7 @@ using namespace std;
 
 class Segmentor {
 public:
-	Segmentor(size_t memsize);
+	Segmentor();
 	virtual ~Segmentor();
 
 public:

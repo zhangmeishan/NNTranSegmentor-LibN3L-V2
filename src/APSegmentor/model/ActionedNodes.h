@@ -41,7 +41,7 @@ struct ActionedNodes {
 	vector<SPAddNode> outputs;
 
 public:
-	inline void initial(ModelParams& params, HyperParams& hyparams){
+	inline void initial(ModelParams& params, HyperParams& hyparams, AlignedMemoryPool* mem){
 		app_1C_C0.setParam(&params.app_1C_C0);
 		app_1Wc0_C0.setParam(&params.app_1Wc0_C0);
 		app_2CT_1CT_CT0.setParam(&params.app_2CT_1CT_CT0);
@@ -69,6 +69,38 @@ public:
 		}
 
 		outputs.resize(hyparams.action_num);
+
+		//allocate node memories
+		app_1C_C0.init(1, -1, mem);
+		app_1Wc0_C0.init(1, -1, mem);
+		app_2CT_1CT_CT0.init(1, -1, mem);
+
+		sep_1C_C0.init(1, -1, mem);
+		sep_1Wc0_C0.init(1, -1, mem);
+		sep_2CT_1CT_CT0.init(1, -1, mem);
+		sep_1W.init(1, -1, mem);
+		sep_1WD_1WL.init(1, -1, mem);
+		sep_1WSingle.init(1, -1, mem);
+		sep_1W_C0.init(1, -1, mem);
+		sep_2W_1W.init(1, -1, mem);
+		sep_2Wc0_1W.init(1, -1, mem);
+		sep_2Wcn_1W.init(1, -1, mem);
+		sep_2Wc0_1Wc0.init(1, -1, mem);
+		sep_2Wcn_1Wcn.init(1, -1, mem);
+		sep_2W_1WL.init(1, -1, mem);
+		sep_2WL_1W.init(1, -1, mem);
+		sep_2W_1Wcn.init(1, -1, mem);
+		sep_1Wc0_1WL.init(1, -1, mem);
+		sep_1Wcn_1WL.init(1, -1, mem);
+
+		for (int idx = 0; idx < sep_1Wci_1Wcn.size(); idx++) {
+			sep_1Wci_1Wcn[idx].init(1, -1, mem);
+		}
+
+		for (int idx = 0; idx < hyparams.action_num; idx++) {
+			outputs[idx].init(1, -1, mem);
+		}
+
 	}
 
 

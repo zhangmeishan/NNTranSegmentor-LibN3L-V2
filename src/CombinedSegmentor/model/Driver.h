@@ -49,7 +49,7 @@ public:
 			std::cout << "hyper parameter initialization Error, Please check!" << std::endl;
 			return;
 		}
-		if (!_modelparams.initial(_hyperparams)){
+		if (!_modelparams.initial(_hyperparams, &aligned_mem)){
 			std::cout << "model parameter initialization Error, Please check!" << std::endl;
 			return;
 		}		
@@ -74,7 +74,7 @@ public:
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss_google(num);
+		cost += loss(num);
 
 		_pcg->backward();
 

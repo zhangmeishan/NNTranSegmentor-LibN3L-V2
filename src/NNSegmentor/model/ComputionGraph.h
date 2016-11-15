@@ -18,13 +18,12 @@ struct COutput{
 // Each model consists of two parts, building neural graph and defining output losses.
 // This framework wastes memory
 struct ComputionGraph : Graph{
-
-public:
+	
+public:	
+	GlobalNodes globalNodes;
 	// node instances
 	CStateItem start;
 	vector<vector<CStateItem> > states; 
-	//vector<NRHeap<CScoredState, CScoredState_Compare> >  beams;
-	//vector<vector<CStateItem*> > outputs; // to define loss
 	vector<vector<COutput> > outputs;
 
 private:
@@ -46,7 +45,10 @@ public:
 	inline void initial(ModelParams& model, HyperParams& opts, AlignedMemoryPool* mem){
 		std::cout << "state size: " << sizeof(CStateItem) << std::endl;
 		std::cout << "action node size: " << sizeof(ActionedNodes) << std::endl;
+		globalNodes.resize(max_sentence_clength);
 		states.resize(opts.maxlength + 1);
+		
+		globalNodes.initial(model, opts, mem);
 		for (int idx = 0; idx < states.size(); idx++){
 			states[idx].resize(opts.beam);
 			for (int idy = 0; idy < states[idx].size(); idy++){
@@ -87,6 +89,7 @@ public:
 			clearValue(false); // decode
 		}
 
+		globalNodes.forward(this, pCharacters);
 		//second step, build graph
 		static vector<CStateItem*> lastStates;
 		static CStateItem* pGenerator;
@@ -110,7 +113,7 @@ public:
 			//prepare for the next
 			for (int idx = 0; idx < lastStates.size(); idx++){
 				pGenerator = lastStates[idx];
-				pGenerator->prepare(pOpts, pModel);
+				pGenerator->prepare(pOpts, pModel, &globalNodes);
 			}
 			
 			answer.clear();
@@ -125,8 +128,6 @@ public:
 				scored_action.item = pGenerator;
 				for (int idy = 0; idy < actions.size(); ++idy) {
 					scored_action.ac = actions[idy]._code;
-					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val[0];
-					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
 					if (pGenerator->_bGold && actions[idy] == answer){
 						scored_action.bGold = true; 
 						correct_action_scored = true;
@@ -136,7 +137,10 @@ public:
 						//scored_action.score += ?? //for max-margin
 						scored_action.bGold = false;
 						output.bGold = false;
+						if (train)pGenerator->_nextscores.outputs[scored_action.ac].val[0] += pOpts->delta;
 					}
+					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val[0];
+					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
 					beam.add_elem(scored_action);
 					per_step_output.push_back(output);
 				}
@@ -192,36 +196,6 @@ public:
 		return 1;
 	}
 
-
-	inline int extractFeat(const std::vector<std::string>* pCharacters, const vector<CAction>* goldAC){
-		//first step, clear node values
-		clearValue(true); // compute is a must step for train, predict and cost computation
-		//second step, build graph
-		static CStateItem* lastState;
-		static CStateItem* pGenerator;
-		static CAction answer;
-		static int step;
-
-		start.setInput(pCharacters);
-		lastState = &start;
-
-		step = 0;
-		while (true){
-			//prepare for the next
-			lastState->prepare(pOpts, pModel);
-			answer = (*goldAC)[step];
-			pGenerator = &states[step][0];
-			lastState->move(pGenerator, answer);
-			pGenerator->collectFeat(pModel);
-			if (pGenerator->IsTerminated()){
-				break;
-			}
-			lastState = pGenerator;
-			step++;
-		}
-
-		return 1;
-	}
 
 public:
 	inline void clearValue(const bool& bTrain){

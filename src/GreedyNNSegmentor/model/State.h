@@ -13,6 +13,7 @@
 #include "ActionedNodes.h"
 #include "AtomFeatures.h"
 #include "Utf.h"
+#include "GlobalNodes.h"
 
 class CStateItem {
 public:
@@ -48,8 +49,8 @@ public:
 		clear();
 	}
 
-	void initial(ModelParams& params, HyperParams& hyparams, AlignedMemoryPool* mem) {
-		_nextscores.initial(params, hyparams, mem);
+	void initial(ModelParams& params, HyperParams& hyparams) {
+		_nextscores.initial(params, hyparams);
 	}
 
 	void setInput(const std::vector<std::string>* pCharacters) {
@@ -232,6 +233,28 @@ public:
 		return ac.set(curAction._code);
 	}
 
+/*
+	bool canSeparate() const{
+		if (_next_index >= 0 && _next_index < _char_size){
+			return true;
+		}
+		return false;
+	}
+
+	bool canFinish() const{
+		if (_next_index == _char_size){
+			return true;
+		}
+		return false;
+	}
+
+	bool canAppend() const{
+		if (_next_index > 0 && _next_index < _char_size){
+			return true;
+		}
+		return false;
+	}
+*/
 	void getCandidateActions(vector<CAction> & actions) const{
 		actions.clear();
 		static CAction ac;
@@ -257,7 +280,7 @@ public:
 
 	inline std::string str() const{
 		stringstream curoutstr;
-		curoutstr << "score: " << _score->val[0] << " ";
+		curoutstr << "score: " << _score->val(0, 0) << " ";
 		curoutstr << "seg:";
 		std::vector<std::string> words;
 		getSegResults(words);
@@ -271,19 +294,20 @@ public:
 
 public:
 	inline void computeNextScore(Graph *cg, const vector<CAction>& acs){
-		if (_bStart){
+		/*if (_bStart){
 			_nextscores.forward(cg, acs, _atomFeat, NULL);
 		}
 		else{
 			_nextscores.forward(cg, acs, _atomFeat, _score);
-		}
+		}*/
+		_nextscores.forward(cg, acs, _atomFeat);
 	}
 
 	inline void collectFeat(ModelParams* model_params){
 		_prevState->_atomFeat.collectFeatures(_lastAction, model_params);
 	}
 
-	inline void prepare(HyperParams* hyper_params, ModelParams* model_params){
+	inline void prepare(HyperParams* hyper_params, ModelParams* model_params, GlobalNodes* global_nodes){
 		static int idx, length, p1wstart, p1wend;
 		_atomFeat.str_C0 = _next_index < _char_size ? _chars->at(_next_index) : nullkey;
 		_atomFeat.str_1C = _next_index > 0 && _next_index - 1 < _char_size ? _chars->at(_next_index - 1) : nullkey;
@@ -326,6 +350,14 @@ public:
 				length = 5;
 			_atomFeat.sid_2WL = p1wend == -1 ? 0 : length;
 		}
+
+		_atomFeat.str_1AC = _lastAction.str();
+		_atomFeat.str_2AC = _prevState == 0 ?  nullkey: _prevState->_lastAction.str();
+		_atomFeat.p_action_lstm = _prevState == 0 ? NULL : &(_prevState->_nextscores.action_lstm);
+		_atomFeat.p_word_lstm = _prevStackState == 0 ? NULL : &(_prevStackState->_nextscores.word_lstm);
+		_atomFeat.next_position = _next_index >= 0 && _next_index < _char_size ? _next_index : -1;
+		_atomFeat.p_char_left_lstm = global_nodes == NULL ? NULL : &(global_nodes->char_left_lstm);
+		_atomFeat.p_char_right_lstm = global_nodes == NULL ? NULL : &(global_nodes->char_right_lstm);
 
 		if (model_params != NULL){
 			_atomFeat.convert2Id(model_params);

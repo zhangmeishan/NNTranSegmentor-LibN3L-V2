@@ -48,8 +48,8 @@ public:
 		clear();
 	}
 
-	void initial(ModelParams& params, HyperParams& hyparams) {
-		_nextscores.initial(params, hyparams);
+	void initial(ModelParams& params, HyperParams& hyparams, AlignedMemoryPool* mem) {
+		_nextscores.initial(params, hyparams, mem);
 	}
 
 	void setInput(const std::vector<std::string>* pCharacters) {
@@ -257,7 +257,7 @@ public:
 
 	inline std::string str() const{
 		stringstream curoutstr;
-		curoutstr << "score: " << _score->val(0, 0) << " ";
+		curoutstr << "score: " << _score->val[0] << " ";
 		curoutstr << "seg:";
 		std::vector<std::string> words;
 		getSegResults(words);
