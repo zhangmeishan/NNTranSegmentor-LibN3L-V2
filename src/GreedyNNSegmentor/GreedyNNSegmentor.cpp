@@ -9,7 +9,7 @@
 
 #include "Argument_helper.h"
 
-Segmentor::Segmentor() {
+Segmentor::Segmentor(size_t memsize) : m_driver(memsize){
 	// TODO Auto-generated constructor stub
 	srand(0);
 	//Node::id = 0;
@@ -214,7 +214,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	//lookup table setting
 	bool initial_successed = false;
 	if (m_options.wordEmbFile != ""){
-		initial_successed = m_driver._modelparams.word_table.initial(&m_driver._modelparams.embeded_words, m_options.wordEmbFile, m_options.wordEmbFineTune);
+		initial_successed = m_driver._modelparams.word_table.initial(&m_driver._modelparams.embeded_words, m_options.wordEmbFile, m_options.wordEmbFineTune, m_options.wordEmbNormalize);
 		if (initial_successed){
 			m_options.wordEmbSize = m_driver._modelparams.word_table.nDim;
 		}
@@ -225,7 +225,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	}
 
 	if (m_options.charEmbFile != ""){
-		initial_successed = m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbFile, m_options.charEmbFineTune);
+		initial_successed = m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbFile, m_options.charEmbFineTune, m_options.charEmbNormalize);
 		if (initial_successed){
 			m_options.charEmbSize = m_driver._modelparams.char_table.nDim;
 		}
@@ -237,7 +237,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 
 	if (m_options.bicharEmbFile != ""){
 		
-		initial_successed = m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbFile, m_options.bicharEmbFineTune);
+		initial_successed = m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbFile, m_options.bicharEmbFineTune, m_options.bicharEmbNormalize);
 		if (initial_successed){
 			m_options.bicharEmbSize = m_driver._modelparams.bichar_table.nDim;
 		}
@@ -466,6 +466,7 @@ int main(int argc, char* argv[]) {
 	std::string outputFile = "";
 	bool bTrain = false;
 	dsr::Argument_helper ah;
+	int memsize = 1;
 
 
 	ah.new_flag("l", "learn", "train or test", bTrain);
@@ -477,10 +478,11 @@ int main(int argc, char* argv[]) {
 	ah.new_named_string("word", "wordEmbFile", "named_string", "pretrained word embedding file to train a model, optional when training", wordEmbFile);
 	ah.new_named_string("option", "optionFile", "named_string", "option file to train a model, optional when training", optionFile);
 	ah.new_named_string("output", "outputFile", "named_string", "output file to test, must when testing", outputFile);
+	ah.new_named_int("mem", "memsize", "named_int", "memory allocated for tensor nodes", memsize);
 
 	ah.process(argc, argv);
 
-	Segmentor segmentor;
+	Segmentor segmentor(memsize);
 	if (bTrain) {
 		segmentor.train(trainFile, devFile, testFile, modelFile, optionFile);
 	}

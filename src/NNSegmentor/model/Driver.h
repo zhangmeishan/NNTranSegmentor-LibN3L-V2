@@ -74,7 +74,7 @@ public:
 
 		int seq_size = sentences[idx].size();
 		_eval.overall_label_count += seq_size + 1;
-		cost += loss(num);
+		cost += loss_google(num);
 
 		_pcg->backward();
 

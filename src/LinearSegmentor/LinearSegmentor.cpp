@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
 	std::string outputFile = "";
 	bool bTrain = false;
 	dsr::Argument_helper ah;
-	size_t memsize = 1<<10;
+	int memsize = 1;
 
 
 	ah.new_flag("l", "learn", "train or test", bTrain);
@@ -406,6 +406,7 @@ int main(int argc, char* argv[]) {
 	ah.new_named_string("word", "wordEmbFile", "named_string", "pretrained word embedding file to train a model, optional when training", wordEmbFile);
 	ah.new_named_string("option", "optionFile", "named_string", "option file to train a model, optional when training", optionFile);
 	ah.new_named_string("output", "outputFile", "named_string", "output file to test, must when testing", outputFile);
+	ah.new_named_int("mem", "memsize", "named_int", "memory allocated for tensor nodes", memsize);
 
 	ah.process(argc, argv);
 
