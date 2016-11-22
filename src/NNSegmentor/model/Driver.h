@@ -144,7 +144,7 @@ private:
 		static vector<dtype> scores;
 		dtype cost = 0.0;
 
-		for (int step = maxstep - 1; step < maxstep; step++){
+		for (int step = 0; step < maxstep; step++){
 			curcount = _pcg->outputs[step].size();
 			max = 0.0;
 			goldIndex = -1;
@@ -166,7 +166,7 @@ private:
 			pGoldNode->loss[0] = -1.0 / num;
 			pGoldNode->lossed = true;
 
-			max = pCurNode->val[0];
+			max = pBestNode->val[0];
 			sum = 0.0;
 			scores.resize(curcount);
 			for (int idx = 0; idx < curcount; idx++){
@@ -183,9 +183,9 @@ private:
 
 			cost += -log(scores[goldIndex] / sum);
 
-			//if (std::isnan(cost)) {
-			//	std::cout << "debug" << std::endl;
-			//}
+			if (std::isnan(cost)) {
+				std::cout << "debug" << std::endl;
+			}
 		
 		}
 

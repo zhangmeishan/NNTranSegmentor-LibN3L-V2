@@ -173,7 +173,7 @@ private:
 			pGoldNode->loss[0] = -1.0 / num;
 			pGoldNode->lossed = true;
 
-			max = pCurNode->val[0];
+			max = pBestNode->val[0];
 			sum = 0.0;
 			scores.resize(curcount);
 			for (int idx = 0; idx < curcount; idx++){
@@ -189,6 +189,10 @@ private:
 			}
 
 			cost += -log(scores[goldIndex] / sum);
+
+			if (std::isnan(cost)) {
+				std::cout << "debug" << std::endl;
+			}
 		
 		}
 
