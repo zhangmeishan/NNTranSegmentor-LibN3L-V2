@@ -59,7 +59,7 @@ public:
 	}
 
 	void clear() {
-		_word = "";
+		_word = "</s>";
 		_wstart = -1;
 		_wend = -1;
 		_prevStackState = 0;
@@ -113,7 +113,7 @@ public:
 			std::cout << "finish error" << std::endl;
 			return;
 		}
-		next->_word = "";
+		next->_word = "</s>";
 		next->_wstart = -1;
 		next->_wend = -1;
 		next->_prevStackState = this;
@@ -233,28 +233,6 @@ public:
 		return ac.set(curAction._code);
 	}
 
-/*
-	bool canSeparate() const{
-		if (_next_index >= 0 && _next_index < _char_size){
-			return true;
-		}
-		return false;
-	}
-
-	bool canFinish() const{
-		if (_next_index == _char_size){
-			return true;
-		}
-		return false;
-	}
-
-	bool canAppend() const{
-		if (_next_index > 0 && _next_index < _char_size){
-			return true;
-		}
-		return false;
-	}
-*/
 	void getCandidateActions(vector<CAction> & actions) const{
 		actions.clear();
 		static CAction ac;
@@ -364,15 +342,16 @@ public:
 class CScoredState {
 public:
 	CStateItem *item;
-	int ac;
+	CAction ac;
 	dtype score;
 	bool bGold;
+	int position;
 
 public:
-	CScoredState() : item(0), score(0), ac(0), bGold(0){
+	CScoredState() : item(0), score(0), ac(), bGold(0), position(-1){
 	}
 
-	CScoredState(const CScoredState& other) : item(other.item), score(other.score), ac(other.ac), bGold(other.bGold){
+	CScoredState(const CScoredState& other) : item(other.item), score(other.score), ac(other.ac), bGold(other.bGold), position(other.position) {
 
 	}
 

@@ -233,6 +233,28 @@ public:
 		return ac.set(curAction._code);
 	}
 
+/*
+	bool canSeparate() const{
+		if (_next_index >= 0 && _next_index < _char_size){
+			return true;
+		}
+		return false;
+	}
+
+	bool canFinish() const{
+		if (_next_index == _char_size){
+			return true;
+		}
+		return false;
+	}
+
+	bool canAppend() const{
+		if (_next_index > 0 && _next_index < _char_size){
+			return true;
+		}
+		return false;
+	}
+*/
 	void getCandidateActions(vector<CAction> & actions) const{
 		actions.clear();
 		static CAction ac;
@@ -278,10 +300,6 @@ public:
 		else{
 			_nextscores.forward(cg, acs, _atomFeat, _score);
 		}
-	}
-
-	inline void collectFeat(ModelParams* model_params){
-		_prevState->_atomFeat.collectFeatures(_lastAction, model_params);
 	}
 
 	inline void prepare(HyperParams* hyper_params, ModelParams* model_params, GlobalNodes* global_nodes){
@@ -330,7 +348,6 @@ public:
 
 		_atomFeat.str_1AC = _lastAction.str();
 		_atomFeat.str_2AC = _prevState == 0 ?  nullkey: _prevState->_lastAction.str();
-		_atomFeat.p_action_lstm = _prevState == 0 ? NULL : &(_prevState->_nextscores.action_lstm);
 		_atomFeat.p_word_lstm = _prevStackState == 0 ? NULL : &(_prevStackState->_nextscores.word_lstm);
 		_atomFeat.next_position = _next_index >= 0 && _next_index < _char_size ? _next_index : -1;
 		_atomFeat.p_char_left_lstm = global_nodes == NULL ? NULL : &(global_nodes->char_left_lstm);

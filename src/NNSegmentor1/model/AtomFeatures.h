@@ -55,7 +55,6 @@ public:
 	int next_position;
 public:
 	IncLSTM1Builder* p_word_lstm;
-	IncLSTM1Builder* p_action_lstm;
 	LSTM1Builder* p_char_left_lstm;
 	LSTM1Builder* p_char_right_lstm;
 public:
@@ -100,7 +99,6 @@ public:
 		str_2AC = "";
 		next_position = -1;
 		p_word_lstm = NULL;
-		p_action_lstm = NULL;
 		p_char_left_lstm = NULL;
 		p_char_right_lstm = NULL;
 	}

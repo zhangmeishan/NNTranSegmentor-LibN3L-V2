@@ -5,7 +5,7 @@
  *      Author: mszhang
  */
 
-#include "GreedyNNSegmentor.h"
+#include "NNSegmentor1.h"
 
 #include "Argument_helper.h"
 
@@ -136,10 +136,8 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	}
 
     m_driver._modelparams.embeded_chartypes.initial(charType_stat);
-    charType_stat[nullkey] = 1;
-    m_driver._modelparams.charTypes.initial(charType_stat);
-	action_stat[nullkey] = 1;
-	m_driver._modelparams.embeded_actions.initial(action_stat, 0);
+	charType_stat[nullkey] = 1;
+	m_driver._modelparams.charTypes.initial(charType_stat);
 
 	cout << numInstance << " " << endl;
 	cout << "Total word num: " << word_stat.size() << endl;
@@ -150,7 +148,6 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	cout << "Remain charType num: " << m_driver._modelparams.charTypes.size() << endl;
 
 	cout << "Dictionary word num: " << m_driver._hyperparams.dicts.size() << endl;
-
 
 
 	return 0;
@@ -258,9 +255,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbSize, true);
 	}
 
-	m_driver._modelparams.action_table.initial(&m_driver._modelparams.embeded_actions, m_options.actionEmbSize, true);
 	m_driver._modelparams.chartype_table.initial(&m_driver._modelparams.embeded_chartypes, m_options.charTypeEmbSize, true);
-
 	m_driver._hyperparams.action_num = CAction::FIN + 1;
 	m_driver._hyperparams.setRequared(m_options);
 	m_driver.initial();

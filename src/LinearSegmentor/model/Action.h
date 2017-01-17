@@ -22,7 +22,7 @@ public:
   unsigned long _code;
 
 public:
-   CAction() : _code(0){
+   CAction() : _code(NO_ACTION){
    }
 
    CAction(int code) : _code(code){
@@ -32,10 +32,14 @@ public:
    }
 
 public:
-   inline void clear() { _code=0; }
+   inline void clear() { _code=NO_ACTION; }
 
    inline void set(int code){
      _code = code;
+   }
+
+   inline void set(const CAction &ac) {
+       _code = ac._code;
    }
 
    inline bool isNone() const { return _code==NO_ACTION; }
@@ -45,11 +49,11 @@ public:
 
 public:
    inline std::string str() const {
-     if (isNone()) { return "NONE"; }
+     if (isNone()) { return nullkey; }
      if (isSeparate()) { return "SEP"; }
      if (isAppend()) { return "APP"; }
      if (isFinish()) { return "FIN"; }
-     return "NONE";
+	 return nullkey;
    }
 
 public:

@@ -42,6 +42,7 @@ public:
 	string wordEmbFile;
 
 	int charEmbSize;
+	int charTypeEmbSize;
 	int bicharEmbSize;
 	int charcontext;
 	int charHiddenSize;
@@ -96,6 +97,7 @@ public:
 		wordEmbFile = "";
 
 		charEmbSize = 50;
+		charTypeEmbSize = 20;
 		bicharEmbSize = 50;
 		charcontext = 2;
 		charHiddenSize = 150;
@@ -185,6 +187,8 @@ public:
 
 			if (pr.first == "charEmbSize")
 				charEmbSize = atoi(pr.second.c_str());
+			if (pr.first == "charTypeEmbSize")
+				charTypeEmbSize = atoi(pr.second.c_str());
 			if (pr.first == "bicharEmbSize")
 				bicharEmbSize = atoi(pr.second.c_str());
 			if (pr.first == "charcontext")
@@ -263,6 +267,7 @@ public:
 		std::cout << "wordEmbFile = " << wordEmbFile << std::endl;
 
 		std::cout << "charEmbSize = " << charEmbSize << std::endl;
+		std::cout << "charTypeEmbSize = " << charEmbSize << std::endl;
 		std::cout << "bicharEmbSize = " << bicharEmbSize << std::endl;
 		std::cout << "charcontext = " << charcontext << std::endl;
 		std::cout << "charHiddenSize = " << charHiddenSize << std::endl;

@@ -17,14 +17,9 @@ struct ActionedNodes {
 	LookupNode last2_word_input;
 	BiNode word_conv;
 	IncLSTM1Builder word_lstm;
-
-	LookupNode last_action_input;
-	LookupNode last2_action_input;
-	BiNode action_conv;
-	IncLSTM1Builder action_lstm;
 	
-	FourNode sep_hidden;
-	TriNode app_hidden;
+	TriNode sep_hidden;
+	BiNode app_hidden;
 	LinearNode sep_score;
 	LinearNode app_score;
 
@@ -40,10 +35,6 @@ public:
 		word_conv.setParam(&(params.word_conv));
 		word_lstm.init(&(params.word_lstm), hyparams.dropProb, mem); //already allocated here
 
-		last_action_input.setParam(&(params.action_table));
-		last2_action_input.setParam(&(params.action_table));
-		action_conv.setParam(&(params.action_conv));
-		action_lstm.init(&(params.action_lstm), hyparams.dropProb, mem); //already allocated here
 
 		sep_hidden.setParam(&(params.sep_hidden));
 		app_hidden.setParam(&(params.app_hidden));
@@ -57,10 +48,6 @@ public:
 		last_word_input.init(hyparams.word_dim, hyparams.dropProb, mem);
 		last2_word_input.init(hyparams.word_dim, hyparams.dropProb, mem);
 		word_conv.init(hyparams.word_hidden_dim, hyparams.dropProb, mem);
-
-		last_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
-		last2_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
-		action_conv.init(hyparams.action_hidden_dim, hyparams.dropProb, mem);
 		
 		sep_hidden.init(hyparams.sep_hidden_dim, -1, mem);
 		app_hidden.init(hyparams.app_hidden_dim, -1, mem);
@@ -83,11 +70,6 @@ public:
 		static int ac_num;
 		ac_num = actions.size();
 
-		last2_action_input.forward(cg, atomFeat.str_2AC);
-		last_action_input.forward(cg, atomFeat.str_1AC);
-		action_conv.forward(cg, &last2_action_input, &last_action_input);
-		action_lstm.forward(cg, &action_conv, atomFeat.p_action_lstm);
-
 		last2_word_input.forward(cg, atomFeat.str_2W);
 		last_word_input.forward(cg, atomFeat.str_1W);
 		word_conv.forward(cg, &last2_word_input, &last_word_input);
@@ -107,12 +89,12 @@ public:
 
 			//neural features
 			if (ac.isAppend()){
-				app_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm, &(action_lstm._hidden));
+				app_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm);
 				app_score.forward(cg, &app_hidden);
 				sumNodes.push_back(&app_score);
 			}
 			else{
-				sep_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm, &(word_lstm._hidden), &(action_lstm._hidden));
+				sep_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm, &(word_lstm._hidden));
 				sep_score.forward(cg, &sep_hidden);
 				sumNodes.push_back(&sep_score);
 			}

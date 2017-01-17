@@ -11,6 +11,8 @@ public:
 	LookupTable word_table; // should be initialized outside	
 	Alphabet embeded_chars; // chars
 	LookupTable char_table; // should be initialized outside	
+	Alphabet embeded_chartypes; // chars
+	LookupTable chartype_table; // should be initialized outside	
 	Alphabet embeded_bichars; // bichars
 	LookupTable bichar_table; // should be initialized outside
 	Alphabet embeded_actions; // bichars
@@ -67,15 +69,15 @@ public:
 			return false;
 		}
 		//neural features
-		char_tanh_conv.initial(opts.char_hidden_dim, opts.char_window_dim, mem);
+		char_tanh_conv.initial(opts.char_hidden_dim, opts.char_window_dim, true, mem);
 		char_left_lstm.initial(opts.char_lstm_dim, opts.char_hidden_dim, mem); //left lstm
 		char_right_lstm.initial(opts.char_lstm_dim, opts.char_hidden_dim, mem); //right lstm
-		word_conv.initial(opts.word_hidden_dim, opts.word_dim, opts.word_dim, mem);
+		word_conv.initial(opts.word_hidden_dim, opts.word_dim, opts.word_dim, true, mem);
 		word_lstm.initial(opts.word_lstm_dim, opts.word_hidden_dim, mem);
-		action_conv.initial(opts.action_hidden_dim, opts.action_dim, opts.action_dim, mem);
+		action_conv.initial(opts.action_hidden_dim, opts.action_dim, opts.action_dim, true, mem);
 		action_lstm.initial(opts.action_lstm_dim, opts.action_hidden_dim, mem);
-		sep_hidden.initial(opts.sep_hidden_dim, opts.char_lstm_dim, opts.char_lstm_dim, opts.word_lstm_dim, opts.action_lstm_dim, mem);
-		app_hidden.initial(opts.app_hidden_dim, opts.char_lstm_dim, opts.char_lstm_dim, opts.action_lstm_dim, mem);
+		sep_hidden.initial(opts.sep_hidden_dim, opts.char_lstm_dim, opts.char_lstm_dim, opts.word_lstm_dim, opts.action_lstm_dim, true, mem);
+		app_hidden.initial(opts.app_hidden_dim, opts.char_lstm_dim, opts.char_lstm_dim, opts.action_lstm_dim, true, mem);
 		sep_score.initial(1, opts.sep_hidden_dim, false, mem);
 		app_score.initial(1, opts.app_hidden_dim, false, mem);
 
@@ -111,6 +113,7 @@ public:
 		//neural features
 		word_table.exportAdaParams(ada);
 		char_table.exportAdaParams(ada);
+		chartype_table.exportAdaParams(ada);
 		bichar_table.exportAdaParams(ada);
 		action_table.exportAdaParams(ada);
 

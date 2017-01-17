@@ -22,7 +22,7 @@ public:
   unsigned long _code;
 
 public:
-   CAction() : _code(0){
+   CAction() : _code(NO_ACTION){
    }
 
    CAction(int code) : _code(code){
@@ -36,6 +36,10 @@ public:
 
    inline void set(int code){
      _code = code;
+   }
+
+   inline void set(const CAction &ac) {
+       _code = ac._code;
    }
 
    inline bool isNone() const { return _code==NO_ACTION; }

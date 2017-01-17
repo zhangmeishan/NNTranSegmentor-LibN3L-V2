@@ -21,9 +21,9 @@ public:
 		return words.size();
 	}
 
-  int charsize() const {
-    return chars.size();
-  }
+	int charsize() const {
+		return chars.size();
+	}
 
 	void clear() {
 		words.clear();
@@ -41,22 +41,22 @@ public:
 		for (int i = 0; i < anInstance.wordsize(); i++) {
 			words[i] = anInstance.words[i];
 		}
-    for (int i = 0; i < anInstance.charsize(); i++) {
-      chars[i] = anInstance.chars[i];
-    }
+		for (int i = 0; i < anInstance.charsize(); i++) {
+			chars[i] = anInstance.chars[i];
+		}
 	}
 
 
 	void evaluate(const vector<string>& resulted_segs, Metric& eval) const {
 	  unordered_set<string> golds;
-	  getSegIndexes(words, golds);
+		getSegIndexes(words, golds);
 
-	  unordered_set<string> preds;
-	  getSegIndexes(resulted_segs, preds);
+		unordered_set<string> preds;
+		getSegIndexes(resulted_segs, preds);
 
-    unordered_set<string>::iterator iter;
-    eval.overall_label_count += golds.size();
-    eval.predicated_label_count += preds.size();
+		unordered_set<string>::iterator iter;
+		eval.overall_label_count += golds.size();
+		eval.predicated_label_count += preds.size();
     for (iter = preds.begin(); iter != preds.end(); iter++) {
       if (golds.find(*iter) != golds.end()) {
         eval.correct_label_count++;
@@ -65,23 +65,23 @@ public:
 
 	}
 
-	void getSegIndexes(const vector<string>& segs, unordered_set<string>& segIndexes) const{
-	  segIndexes.clear();
-	  int idx = 0, idy = 0;
-	  string curWord = "";
-	  int beginId = 0;
-	  while(idx < chars.size() && idy < segs.size()){
-	    curWord = curWord + chars[idx];
-	    if(curWord.length() == segs[idy].length()){
-        stringstream ss;
-        ss << "[" << beginId << "," << idx << "]";
-        segIndexes.insert(ss.str());
-        idy++;
-        beginId = idx+1;
-        curWord = "";
-	    }
-	    idx++;
-	  }
+	void getSegIndexes(const vector<string>& segs, unordered_set<string>& segIndexes) const {
+		segIndexes.clear();
+		int idx = 0, idy = 0;
+		string curWord = "";
+		int beginId = 0;
+		while (idx < chars.size() && idy < segs.size()) {
+			curWord = curWord + chars[idx];
+			if (curWord.length() == segs[idy].length()) {
+				stringstream ss;
+				ss << "[" << beginId << "," << idx << "]";
+				segIndexes.insert(ss.str());
+				idy++;
+				beginId = idx + 1;
+				curWord = "";
+			}
+			idx++;
+		}
 
 	  if(idx != chars.size() || idy != segs.size()){
 	    std::cout << "error segs, please check" << std::endl;

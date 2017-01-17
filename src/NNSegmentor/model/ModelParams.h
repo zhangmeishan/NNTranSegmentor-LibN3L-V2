@@ -11,6 +11,8 @@ public:
 	LookupTable word_table; // should be initialized outside	
 	Alphabet embeded_chars; // chars
 	LookupTable char_table; // should be initialized outside	
+	Alphabet embeded_chartypes; // chars
+	LookupTable chartype_table; // should be initialized outside	
 	Alphabet embeded_bichars; // bichars
 	LookupTable bichar_table; // should be initialized outside
 	Alphabet embeded_actions; // bichars
@@ -62,6 +64,7 @@ public:
 		//neural features
 		word_table.exportAdaParams(ada);
 		char_table.exportAdaParams(ada);
+		chartype_table.exportAdaParams(ada);
 		bichar_table.exportAdaParams(ada);
 		action_table.exportAdaParams(ada);
 

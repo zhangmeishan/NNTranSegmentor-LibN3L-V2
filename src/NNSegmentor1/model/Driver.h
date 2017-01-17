@@ -123,8 +123,8 @@ private:
 
         _batch++;
 
-        if (pGoldNode != pBestNode) {
-            pGoldNode->loss[0] = -1.0 / num;
+		if (pGoldNode != pBestNode){
+			pGoldNode->loss[0] = -1.0 / num;
 
 			pBestNode->loss[0] = 1.0 / num;
 
@@ -148,7 +148,7 @@ private:
 		static vector<dtype> scores;
 		dtype cost = 0.0;
 
-		for (int step = 0; step < maxstep; step++){
+		for (int step = maxstep - 1; step < maxstep; step++){
 			curcount = _pcg->outputs[step].size();
 			max = 0.0;
 			goldIndex = -1;
@@ -201,7 +201,7 @@ private:
 
 	void predict(vector<string>& result){
 		int step = _pcg->outputs.size();
-		_pcg->states[step - 1].getSegResults(result);
+		_pcg->states[step - 1][0].getSegResults(result);
 	}
 
 public:

@@ -22,6 +22,7 @@ struct HyperParams{
 	dtype dropProb;
 
 	int char_dim; 
+	int chartype_dim;
 	int bichar_dim;
 	int word_dim;
 	int action_dim;
@@ -66,6 +67,7 @@ public:
 
 		char_dim = opt.charEmbSize;
 		bichar_dim = opt.bicharEmbSize;
+		chartype_dim = opt.charTypeEmbSize;
 		word_dim = opt.wordEmbSize;
 		action_dim = opt.actionEmbSize;
 
@@ -74,7 +76,7 @@ public:
 		word_tune = opt.wordEmbFineTune;
 
 		char_context = opt.charcontext;
-		char_repsentation_dim = char_dim + bichar_dim;
+		char_repsentation_dim = char_dim + bichar_dim + chartype_dim;
 		char_window_dim = (2 * char_context + 1) * char_repsentation_dim;
 
 		char_hidden_dim = opt.charHiddenSize;

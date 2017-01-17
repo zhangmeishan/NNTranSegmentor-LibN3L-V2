@@ -10,6 +10,7 @@
 
 #include "ModelParams.h"
 #include "AtomFeatures.h"
+#include "Action.h"
 
 struct ActionedNodes {
 	LookupNode last_word_input;
@@ -112,12 +113,13 @@ public:
 		last2_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
 		action_conv.init(hyparams.action_hidden_dim, hyparams.dropProb, mem);
 		
-		sep_hidden.init(hyparams.sep_hidden_dim, hyparams.dropProb, mem);
-		app_hidden.init(hyparams.app_hidden_dim, hyparams.dropProb, mem);
+		sep_hidden.init(hyparams.sep_hidden_dim, -1, mem);
+		app_hidden.init(hyparams.app_hidden_dim, -1, mem);
 		sep_score.init(1, -1, mem);
 		app_score.init(1, -1, mem);
 		
 		bucket.init(hyparams.char_lstm_dim, -1, mem);
+		bucket.set_bucket();
 		
 		app_1C_C0.init(1, -1, mem);
 		app_1Wc0_C0.init(1, -1, mem);
@@ -173,9 +175,9 @@ public:
 
 
 		for (int idx = 0; idx < ac_num; idx++){
-			ac.set(actions[idx]._code);
+			ac.set(actions[idx]);
 			sumNodes.clear();
-			/*
+			
 			if (ac.isAppend()){
 				app_1C_C0.forward(cg, atomFeat.sid_1C, atomFeat.sid_C0);
 				if (app_1C_C0.executed)sumNodes.push_back(&app_1C_C0);
@@ -245,7 +247,7 @@ public:
 					if (sep_1Wci_1Wcn[idx].executed)sumNodes.push_back(&(sep_1Wci_1Wcn[idx]));
 				}
 			}
-			*/
+			
 			if (prevStateNode != NULL){
 				sumNodes.push_back(prevStateNode);
 			}
@@ -263,7 +265,7 @@ public:
 				sumNodes.push_back(&sep_score);
 			}
 
-			outputs[ac._code].forward(cg, sumNodes, ac._code);
+			outputs[idx].forward(cg, sumNodes, 0);
 		}
 	}
 

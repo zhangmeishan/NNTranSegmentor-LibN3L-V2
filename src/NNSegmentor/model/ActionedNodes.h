@@ -10,6 +10,7 @@
 
 #include "ModelParams.h"
 #include "AtomFeatures.h"
+#include "Action.h"
 
 struct ActionedNodes {
 	LookupNode last_word_input;
@@ -61,12 +62,13 @@ public:
 		last2_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
 		action_conv.init(hyparams.action_hidden_dim, hyparams.dropProb, mem);
 		
-		sep_hidden.init(hyparams.sep_hidden_dim, hyparams.dropProb, mem);
-		app_hidden.init(hyparams.app_hidden_dim, hyparams.dropProb, mem);
+		sep_hidden.init(hyparams.sep_hidden_dim, -1, mem);
+		app_hidden.init(hyparams.app_hidden_dim, -1, mem);
 		sep_score.init(1, -1, mem);
 		app_score.init(1, -1, mem);
 		
 		bucket.init(hyparams.char_lstm_dim, -1, mem);
+        bucket.set_bucket();
 		
 		for (int idx = 0; idx < hyparams.action_num; idx++) {
 			outputs[idx].init(1, -1, mem);
@@ -96,7 +98,7 @@ public:
 
 
 		for (int idx = 0; idx < ac_num; idx++){
-			ac.set(actions[idx]._code);
+			ac.set(actions[idx]);
 			sumNodes.clear();
 
 			if (prevStateNode != NULL){
@@ -115,7 +117,7 @@ public:
 				sumNodes.push_back(&sep_score);
 			}
 
-			outputs[ac._code].forward(cg, sumNodes, ac._code);
+			outputs[idx].forward(cg, sumNodes, 0);
 		}
 	}
 

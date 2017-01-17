@@ -123,71 +123,71 @@ public:
 				app_2CT_1CT_CT0.forward(cg, atomFeat.sid_2CT, atomFeat.sid_1CT, atomFeat.sid_CT0);
 				if (app_2CT_1CT_CT0.executed)sumNodes.push_back(&app_2CT_1CT_CT0);
 			}
-			else{
-				sep_1C_C0.forward(cg, atomFeat.sid_1C, atomFeat.sid_C0);
-				if (sep_1C_C0.executed)sumNodes.push_back(&sep_1C_C0);
+            else {
+                sep_1C_C0.forward(cg, atomFeat.sid_1C, atomFeat.sid_C0);
+                if (sep_1C_C0.executed)sumNodes.push_back(&sep_1C_C0);
 
-				sep_1Wc0_C0.forward(cg, atomFeat.sid_1Wc0, atomFeat.sid_C0);
-				if (sep_1Wc0_C0.executed)sumNodes.push_back(&sep_1Wc0_C0);
+                sep_1Wc0_C0.forward(cg, atomFeat.sid_1Wc0, atomFeat.sid_C0);
+                if (sep_1Wc0_C0.executed)sumNodes.push_back(&sep_1Wc0_C0);
 
-				sep_2CT_1CT_CT0.forward(cg, atomFeat.sid_2CT, atomFeat.sid_1CT, atomFeat.sid_CT0);
-				if (sep_2CT_1CT_CT0.executed)sumNodes.push_back(&sep_2CT_1CT_CT0);
+                sep_2CT_1CT_CT0.forward(cg, atomFeat.sid_2CT, atomFeat.sid_1CT, atomFeat.sid_CT0);
+                if (sep_2CT_1CT_CT0.executed)sumNodes.push_back(&sep_2CT_1CT_CT0);
 
-				sep_1W.forward(cg, atomFeat.sid_1W);
-				if (sep_1W.executed)sumNodes.push_back(&sep_1W);
+                sep_1W.forward(cg, atomFeat.sid_1W);
+                if (sep_1W.executed)sumNodes.push_back(&sep_1W);
 
-				sep_1WD_1WL.forward(cg, atomFeat.sid_1WD, atomFeat.sid_1WL);
-				if (sep_1WD_1WL.executed)sumNodes.push_back(&sep_1WD_1WL);
+                sep_1WD_1WL.forward(cg, atomFeat.sid_1WD, atomFeat.sid_1WL);
+                if (sep_1WD_1WL.executed)sumNodes.push_back(&sep_1WD_1WL);
 
-				if (atomFeat.sid_1WL == 1){
-					sep_1WSingle.forward(cg, atomFeat.sid_1W);
-					if (sep_1WSingle.executed)sumNodes.push_back(&sep_1WSingle);
-				}
+                if (atomFeat.sid_1WL == 1) {
+                    sep_1WSingle.forward(cg, atomFeat.sid_1W);
+                    if (sep_1WSingle.executed)sumNodes.push_back(&sep_1WSingle);
+                }
 
-				sep_1W_C0.forward(cg, atomFeat.sid_1W, atomFeat.sid_C0);
-				if (sep_1W_C0.executed)sumNodes.push_back(&sep_1W_C0);
+                sep_1W_C0.forward(cg, atomFeat.sid_1W, atomFeat.sid_C0);
+                if (sep_1W_C0.executed)sumNodes.push_back(&sep_1W_C0);
 
-				sep_2W_1W.forward(cg, atomFeat.sid_2W, atomFeat.sid_1W);
-				if (sep_2W_1W.executed)sumNodes.push_back(&sep_2W_1W);
+                sep_2W_1W.forward(cg, atomFeat.sid_2W, atomFeat.sid_1W);
+                if (sep_2W_1W.executed)sumNodes.push_back(&sep_2W_1W);
 
-				sep_2Wc0_1W.forward(cg, atomFeat.sid_2Wc0, atomFeat.sid_1W);
-				if (sep_2Wc0_1W.executed)sumNodes.push_back(&sep_2Wc0_1W);
+                sep_2Wc0_1W.forward(cg, atomFeat.sid_2Wc0, atomFeat.sid_1W);
+                if (sep_2Wc0_1W.executed)sumNodes.push_back(&sep_2Wc0_1W);
 
-				sep_2Wcn_1W.forward(cg, atomFeat.sid_2Wcn, atomFeat.sid_1W);
-				if (sep_2Wcn_1W.executed)sumNodes.push_back(&sep_2Wcn_1W);
+                sep_2Wcn_1W.forward(cg, atomFeat.sid_2Wcn, atomFeat.sid_1W);
+                if (sep_2Wcn_1W.executed)sumNodes.push_back(&sep_2Wcn_1W);
 
-				sep_2Wc0_1Wc0.forward(cg, atomFeat.sid_2Wc0, atomFeat.sid_1Wc0);
-				if (sep_2Wc0_1Wc0.executed)sumNodes.push_back(&sep_2Wc0_1Wc0);
+                sep_2Wc0_1Wc0.forward(cg, atomFeat.sid_2Wc0, atomFeat.sid_1Wc0);
+                if (sep_2Wc0_1Wc0.executed)sumNodes.push_back(&sep_2Wc0_1Wc0);
 
-				sep_2Wcn_1Wcn.forward(cg, atomFeat.sid_2Wcn, atomFeat.sid_1C);
-				if (sep_2Wcn_1Wcn.executed)sumNodes.push_back(&sep_2Wcn_1Wcn);
+                sep_2Wcn_1Wcn.forward(cg, atomFeat.sid_2Wcn, atomFeat.sid_1C);
+                if (sep_2Wcn_1Wcn.executed)sumNodes.push_back(&sep_2Wcn_1Wcn);
 
-				sep_2W_1WL.forward(cg, atomFeat.sid_2W, atomFeat.sid_1WL);
-				if (sep_2W_1WL.executed)sumNodes.push_back(&sep_2W_1WL);
+                sep_2W_1WL.forward(cg, atomFeat.sid_2W, atomFeat.sid_1WL);
+                if (sep_2W_1WL.executed)sumNodes.push_back(&sep_2W_1WL);
 
-				sep_2WL_1W.forward(cg, atomFeat.sid_2WL, atomFeat.sid_1W);
-				if (sep_2WL_1W.executed)sumNodes.push_back(&sep_2WL_1W);
+                sep_2WL_1W.forward(cg, atomFeat.sid_2WL, atomFeat.sid_1W);
+                if (sep_2WL_1W.executed)sumNodes.push_back(&sep_2WL_1W);
 
-				sep_2W_1Wcn.forward(cg, atomFeat.sid_2W, atomFeat.sid_1C);
-				if (sep_2W_1Wcn.executed)sumNodes.push_back(&sep_2W_1Wcn);
+                sep_2W_1Wcn.forward(cg, atomFeat.sid_2W, atomFeat.sid_1C);
+                if (sep_2W_1Wcn.executed)sumNodes.push_back(&sep_2W_1Wcn);
 
-				sep_1Wc0_1WL.forward(cg, atomFeat.sid_1Wc0, atomFeat.sid_1WL);
-				if (sep_1Wc0_1WL.executed)sumNodes.push_back(&sep_1Wc0_1WL);
+                sep_1Wc0_1WL.forward(cg, atomFeat.sid_1Wc0, atomFeat.sid_1WL);
+                if (sep_1Wc0_1WL.executed)sumNodes.push_back(&sep_1Wc0_1WL);
 
-				sep_1Wcn_1WL.forward(cg, atomFeat.sid_1C, atomFeat.sid_1WL);
-				if (sep_1Wcn_1WL.executed)sumNodes.push_back(&sep_1Wcn_1WL);
+                sep_1Wcn_1WL.forward(cg, atomFeat.sid_1C, atomFeat.sid_1WL);
+                if (sep_1Wcn_1WL.executed)sumNodes.push_back(&sep_1Wcn_1WL);
 
-				for (int idx = 0; idx < atomFeat.sid_1Wci.size(); idx++){
-					sep_1Wci_1Wcn[idx].forward(cg, atomFeat.sid_1Wci[idx], atomFeat.sid_1C);
-					if (sep_1Wci_1Wcn[idx].executed)sumNodes.push_back(&(sep_1Wci_1Wcn[idx]));
-				}
-			}
+                for (int idx = 0; idx < atomFeat.sid_1Wci.size(); idx++) {
+                    sep_1Wci_1Wcn[idx].forward(cg, atomFeat.sid_1Wci[idx], atomFeat.sid_1C);
+                    if (sep_1Wci_1Wcn[idx].executed)sumNodes.push_back(&(sep_1Wci_1Wcn[idx]));
+                }
+            }
 
 			if (prevStateNode != NULL){
 				sumNodes.push_back(prevStateNode);
 			}
 
-			outputs[ac._code].forward(cg, sumNodes, ac._code);
+			outputs[idx].forward(cg, sumNodes, 0);
 		}
 	}
 

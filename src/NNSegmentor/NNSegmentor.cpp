@@ -28,6 +28,15 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	unordered_map<string, int> word_stat;
 	unordered_map<string, int> char_stat;
 	unordered_map<string, int> bichar_stat;
+	unordered_map<string, int> charType_stat;
+
+	charType_stat["U"] = 1;
+	charType_stat["u"] = 1;
+	charType_stat["e"] = 1;
+	charType_stat["E"] = 1;
+	charType_stat["p"] = 1;
+	charType_stat["d"] = 1;
+	charType_stat["o"] = 1;
 
 	assert(numInstance > 0);
 	int count = 0;
@@ -81,7 +90,6 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		}
 	}
 
-	unordered_map<string, int> charType_stat;
 	unordered_map<string, int> action_stat;
 
 	vector<CStateItem> state(m_driver._hyperparams.maxlength + 1);
@@ -127,8 +135,10 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 			break;
 	}
 
-	charType_stat[nullkey] = 1;
-	m_driver._modelparams.charTypes.initial(charType_stat);
+    m_driver._modelparams.embeded_chartypes.initial(charType_stat);
+    charType_stat[nullkey] = 1;
+    m_driver._modelparams.charTypes.initial(charType_stat);
+	action_stat[nullkey] = 1;
 	m_driver._modelparams.embeded_actions.initial(action_stat, 0);
 
 	cout << numInstance << " " << endl;
@@ -224,6 +234,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		m_driver._modelparams.word_table.initial(&m_driver._modelparams.embeded_words, m_options.wordEmbSize, true);
 	}
 
+	initial_successed = false;
 	if (m_options.charEmbFile != ""){
 		initial_successed = m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbFile, m_options.charEmbFineTune, m_options.charEmbNormalize);
 		if (initial_successed){
@@ -235,8 +246,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		m_driver._modelparams.char_table.initial(&m_driver._modelparams.embeded_chars, m_options.charEmbSize, true);
 	}
 
-	if (m_options.bicharEmbFile != ""){
-		
+	initial_successed = false;
+	if (m_options.bicharEmbFile != ""){		
 		initial_successed = m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbFile, m_options.bicharEmbFineTune, m_options.bicharEmbNormalize);
 		if (initial_successed){
 			m_options.bicharEmbSize = m_driver._modelparams.bichar_table.nDim;
@@ -248,6 +259,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	}
 
 	m_driver._modelparams.action_table.initial(&m_driver._modelparams.embeded_actions, m_options.actionEmbSize, true);
+	m_driver._modelparams.chartype_table.initial(&m_driver._modelparams.embeded_chartypes, m_options.charTypeEmbSize, true);
 
 	m_driver._hyperparams.action_num = CAction::FIN + 1;
 	m_driver._hyperparams.setRequared(m_options);

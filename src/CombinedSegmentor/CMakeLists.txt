@@ -3,5 +3,6 @@ include_directories(
   model
 )
 
-add_executable(NNSegmentor NNSegmentor.cpp)
+add_executable(CombinedSegmentor CombinedSegmentor.cpp)
+target_link_libraries(CombinedSegmentor ${LIBS})
 

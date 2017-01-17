@@ -187,7 +187,7 @@ public:
 				sumNodes.push_back(prevStateNode);
 			}
 
-			outputs[ac._code].forward(cg, sumNodes, ac._code);
+			outputs[idx].forward(cg, sumNodes, 0);
 		}
 	}
 

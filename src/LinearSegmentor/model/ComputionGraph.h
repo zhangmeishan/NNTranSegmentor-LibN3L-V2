@@ -122,7 +122,7 @@ public:
 				pGenerator->computeNextScore(this, actions);
 				scored_action.item = pGenerator;
 				for (int idy = 0; idy < actions.size(); ++idy) {
-					scored_action.ac = actions[idy]._code;
+                    scored_action.ac.set(actions[idy]); //TODO:
 					if (pGenerator->_bGold && actions[idy] == answer){
 						scored_action.bGold = true; 
 						correct_action_scored = true;
@@ -132,9 +132,11 @@ public:
 						//scored_action.score += ?? //for max-margin
 						scored_action.bGold = false;
 						output.bGold = false;
+						if (train)pGenerator->_nextscores.outputs[idy].val[0] += pOpts->delta;
 					}
-					scored_action.score = pGenerator->_nextscores.outputs[scored_action.ac].val[0];
-					output.in = &(pGenerator->_nextscores.outputs[scored_action.ac]);
+					scored_action.score = pGenerator->_nextscores.outputs[idy].val[0];
+					scored_action.position = idy;
+					output.in = &(pGenerator->_nextscores.outputs[idy]);
 					beam.add_elem(scored_action);
 					per_step_output.push_back(output);
 				}
@@ -143,7 +145,24 @@ public:
 			outputs.push_back(per_step_output);
 
 			if (train && !correct_action_scored){ //training
-				std::cout << "error during training, gold-standard action is filtered" << std::endl;
+				std::cout << "error during training, gold-standard action is filtered: " << step << std::endl;
+//				for (int idx = 0; idx < inst.size(); idx++) {
+//					std::cout << inst.words[idx] << "\t" << inst.tags[idx] << "\t" << inst.result.heads[idx] << "\t" << inst.result.labels[idx] << endl;
+//				}
+//				std::cout << std::endl;
+				std::cout << answer.str() << std::endl;
+				for (int idx = 0; idx < lastStates.size(); idx++) {
+					pGenerator = lastStates[idx];
+//					std::cout << pGenerator->str(pOpts) << std::endl;
+					if (pGenerator->_bGold) {
+						pGenerator->getCandidateActions(actions);
+						for (int idy = 0; idy < actions.size(); ++idy) {
+							std::cout << actions[idy].str() << " ";
+						}
+						std::cout << std::endl;
+					}
+				}
+				return -1;
 			}
 
 			offset = beam.elemsize();
@@ -163,8 +182,8 @@ public:
 				action.set(beam[idx].ac);
 				pGenerator->move(&(states[step][idx]), action);
 				states[step][idx]._bGold = beam[idx].bGold;
-				states[step][idx]._score = &(pGenerator->_nextscores.outputs[beam[idx].ac]);
-			}			
+				states[step][idx]._score = &(pGenerator->_nextscores.outputs[beam[idx].position]);
+			}
 
 			if (states[step][0].IsTerminated()){
 				break;

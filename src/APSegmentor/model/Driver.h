@@ -14,23 +14,19 @@
 #include "Action.h"
 #include "ComputionGraph.h"
 
-
-using namespace nr;
-using namespace std;
-
-//re-implementation of Yue and Clark ACL (2007)
 class Driver {
 public:
-  Driver(size_t memsize) : aligned_mem(memsize){
-	  _pcg = NULL;
-	  
-  }
+    Driver(size_t memsize) : aligned_mem(memsize) {
+        _pcg = NULL;
+        _batch = 0;
+    }
 
-  ~Driver() {
-	  if (_pcg != NULL)
-		  delete _pcg;
-	  _pcg = NULL;
-  }
+    ~Driver() {
+        if (_pcg != NULL)
+            delete _pcg;
+        _pcg = NULL;
+        _batch = 0;
+    }
 
 public:
 	ComputionGraph*  _pcg;
@@ -41,7 +37,8 @@ public:
 	CheckGrad _checkgrad;
 	ModelUpdate _ada;  // model update
 
-	AlignedMemoryPool aligned_mem;
+    AlignedMemoryPool aligned_mem;
+    int _batch;
 
 public:
 
@@ -58,10 +55,13 @@ public:
 
 		_pcg = new ComputionGraph();
 		_pcg->initial(_modelparams, _hyperparams, &aligned_mem);
-		std::cout << "allocated memory: " << aligned_mem.capacity << ", total required memory: " << aligned_mem.required << ", perc = " << aligned_mem.capacity*1.0 / aligned_mem.required << std::endl;
 
-		setUpdateParameters(_hyperparams.nnRegular, _hyperparams.adaAlpha, _hyperparams.adaEps);
-	}
+        std::cout << "allocated memory: " << aligned_mem.capacity << ", total required memory: " << aligned_mem.required
+            << ", perc = " << aligned_mem.capacity * 1.0 / aligned_mem.required << std::endl;
+
+        setUpdateParameters(_hyperparams.nnRegular, _hyperparams.adaAlpha, _hyperparams.adaEps);
+        _batch = 0;
+    }
 
 
 public:
@@ -72,9 +72,8 @@ public:
 	for (int idx = 0; idx < num; idx++) {
 		_pcg->forward(&sentences[idx], &goldACs[idx]);
 
-		int seq_size = sentences[idx].size();
-		_eval.overall_label_count += seq_size + 1;
-		cost += loss(num);
+            _eval.overall_label_count += goldACs[idx].size();
+            cost += loss(num);
 
 		_pcg->backward();
 
@@ -99,7 +98,10 @@ public:
 	  if (_ada._params.empty()){
 		  _modelparams.exportModelParams(_ada);
 	  }
-	  _ada.update();
+        //_ada.rescaleGrad(1.0 / _batch);
+        _ada.update();
+        //_ada.updateAdam(10);
+        _batch = 0;
   }
 
   void writeModel();
@@ -126,6 +128,8 @@ private:
 			}
 		}
 
+        _batch++;
+
 		if (pGoldNode != pBestNode){
 			pGoldNode->loss[0] = -1.0 / num;
 
@@ -145,12 +149,12 @@ private:
 		_pcg->states[step - 1][0].getSegResults(result);
 	}
 
-
-	inline void setUpdateParameters(dtype nnRegular, dtype adaAlpha, dtype adaEps){
-		_ada._alpha = adaAlpha;
-		_ada._eps = adaEps;
-		_ada._reg = nnRegular;
-	}
+public:
+    inline void setUpdateParameters(dtype nnRegular, dtype adaAlpha, dtype adaEps) {
+        _ada._alpha = adaAlpha;
+        _ada._eps = adaEps;
+        _ada._reg = nnRegular;
+    }
 
 };
 
