@@ -281,17 +281,60 @@ public:
 	}
 
 	inline void prepare(HyperParams* hyper_params, ModelParams* model_params, GlobalNodes* global_nodes){
-		_atomFeat.str_1W = _word;
-        _atomFeat.str_AC = _lastAction.str();
-        _atomFeat.word_num = _word_count;
-        _atomFeat.word_start = _wstart;
-        _atomFeat.next_position = _next_index;
-        _atomFeat.char_size = _char_size;
+		static int idx, length, p1wstart, p1wend;
+		_atomFeat.str_C0 = _next_index < _char_size ? _chars->at(_next_index) : nullkey;
+		_atomFeat.str_1C = _next_index > 0 && _next_index - 1 < _char_size ? _chars->at(_next_index - 1) : nullkey;
+		_atomFeat.str_2C = _next_index > 1 && _next_index - 2 < _char_size ? _chars->at(_next_index - 2) : nullkey;
+
+		_atomFeat.str_CT0 = _next_index < _char_size ? wordtype(_atomFeat.str_C0) : nullkey;
+		_atomFeat.str_1CT = _next_index > 0 && _next_index - 1 < _char_size ? wordtype(_atomFeat.str_1C) : nullkey;
+		_atomFeat.str_2CT = _next_index > 1 && _next_index - 2 < _char_size ? wordtype(_atomFeat.str_2C) : nullkey;
+
+		_atomFeat.str_1W = _wend == -1 ? nullkey : _word;
+		_atomFeat.str_1Wc0 = _wend == -1 ? nullkey : _chars->at(_wstart);
+
+		_atomFeat.sid_1WD = _wend == -1 ? 0 : (hyper_params->dicts.find(_atomFeat.str_1W) != hyper_params->dicts.end() ? 1 : 2);
+
+		{
+			length = _wend - _wstart + 1;
+			if (length > 5)
+				length = 5;
+			_atomFeat.sid_1WL = _wend == -1 ? 0 : length;
+		}
+
+		if (_wend == -1){
+			_atomFeat.str_1Wci.clear();
+		}
+		else{
+			_atomFeat.str_1Wci.clear();
+			for (int idx = _wstart; idx < _wend; idx++){
+				_atomFeat.str_1Wci.push_back(_chars->at(idx));
+			}
+		}
+
+		p1wstart = _prevStackState == 0 ? -1 : _prevStackState->_wstart;
+		p1wend = _prevStackState == 0 ? -1 : _prevStackState->_wend;
+		_atomFeat.str_2W = p1wend == -1 ? nullkey : _prevStackState->_word;
+		_atomFeat.str_2Wc0 = p1wend == -1 ? nullkey : _chars->at(p1wstart);
+		_atomFeat.str_2Wcn = p1wend == -1 ? nullkey : _chars->at(p1wend);
+		{
+			length = p1wend - p1wstart + 1;
+			if (length > 5)
+				length = 5;
+			_atomFeat.sid_2WL = p1wend == -1 ? 0 : length;
+		}
+
+		_atomFeat.str_1AC = _lastAction.str();
+		_atomFeat.str_2AC = _prevState == 0 ?  nullkey: _prevState->_lastAction.str();
+		_atomFeat.p_action_lstm = _prevState == 0 ? NULL : &(_prevState->_nextscores.action_lstm);
 		_atomFeat.p_word_lstm = _prevStackState == 0 ? NULL : &(_prevStackState->_nextscores.word_lstm);
-        _atomFeat.p_action_lstm = _prevState == 0 ? NULL : &(_prevState->_nextscores.action_lstm);
+		_atomFeat.next_position = _next_index >= 0 && _next_index < _char_size ? _next_index : -1;
 		_atomFeat.p_char_left_lstm = global_nodes == NULL ? NULL : &(global_nodes->char_left_lstm);
 		_atomFeat.p_char_right_lstm = global_nodes == NULL ? NULL : &(global_nodes->char_right_lstm);
 
+		if (model_params != NULL){
+			_atomFeat.convert2Id(model_params);
+		}
 	}
 };
 

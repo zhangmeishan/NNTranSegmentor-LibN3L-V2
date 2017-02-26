@@ -29,6 +29,9 @@ public:
 	dtype oovRatio;
 	int beam;
 
+  int wordStateSize;
+  int charStateSize;
+  int actionStateSize;
 	int sepHiddenSize;
 	int appHiddenSize;
 
@@ -82,10 +85,13 @@ public:
 		delta = 0.2;
 		clip = -1.0;
 		oovRatio = 0.2;
-		beam = 16;
+		beam = 4;
 
-		sepHiddenSize = 100;
-		appHiddenSize = 80;
+    wordStateSize = 100;
+    charStateSize = 200;
+    actionStateSize = 30;
+		sepHiddenSize = 200;
+		appHiddenSize = 150;
 
 		wordEmbSize = 50;
 		lengthEmbSize = 20;
@@ -100,11 +106,11 @@ public:
 		charTypeEmbSize = 20;
 		bicharEmbSize = 50;
 		charcontext = 2;
-		charHiddenSize = 150;
+		charHiddenSize = 100;
 		charRNNHiddenSize = 100;
-		charEmbFineTune = false;
+		charEmbFineTune = true;
 		charEmbNormalize = true;
-		bicharEmbFineTune = false;
+		bicharEmbFineTune = true;
 		bicharEmbNormalize = true;
 		charEmbFile = "";
 		bicharEmbFile = "";
@@ -163,6 +169,12 @@ public:
 			if (pr.first == "beam")
 				beam = atoi(pr.second.c_str());
 
+      if (pr.first == "wordStateSize")
+        wordStateSize = atoi(pr.second.c_str());
+      if (pr.first == "charStateSize")
+        charStateSize = atoi(pr.second.c_str());
+      if (pr.first == "actionStateSize")
+        actionStateSize = atoi(pr.second.c_str());
 			if (pr.first == "sepHiddenSize")
 				sepHiddenSize = atoi(pr.second.c_str());
 			if (pr.first == "appHiddenSize")
@@ -254,6 +266,9 @@ public:
 		std::cout << "oovRatio = " << oovRatio << std::endl;
 		std::cout << "beam = " << beam << std::endl;
 
+    std::cout << "wordStateSize = " << wordStateSize << std::endl;
+    std::cout << "charStateSize = " << charStateSize << std::endl;
+    std::cout << "actionStateSize = " << actionStateSize << std::endl;
 		std::cout << "sepHiddenSize = " << sepHiddenSize << std::endl;
 		std::cout << "appHiddenSize = " << appHiddenSize << std::endl;
 

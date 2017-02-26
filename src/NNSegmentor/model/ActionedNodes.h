@@ -1,9 +1,9 @@
 /*
- * Feature.h
- *
- *  Created on: Aug 25, 2016
- *      Author: mszhang
- */
+* Feature.h
+*
+*  Created on: Aug 25, 2016
+*      Author: mszhang
+*/
 
 #ifndef SRC_ActionedNodes_H_
 #define SRC_ActionedNodes_H_
@@ -13,113 +13,186 @@
 #include "Action.h"
 
 struct ActionedNodes {
-	LookupNode last_word_input;
-	LookupNode last2_word_input;
-	BiNode word_conv;
-	IncLSTM1Builder word_lstm;
+    LookupNode last_action_input;
+    IncLSTM1Builder action_lstm;
+    ConcatNode action_state_concat;
+    UniNode action_state_hidden;
+    LookupNode last_word_input;
+    IncLSTM1Builder word_lstm;
+    ConcatNode word_state_concat;
+    UniNode word_state_hidden;
 
-	LookupNode last_action_input;
-	LookupNode last2_action_input;
-	BiNode action_conv;
-	IncLSTM1Builder action_lstm;
-	
-	FourNode sep_hidden;
-	TriNode app_hidden;
-	LinearNode sep_score;
-	LinearNode app_score;
+    PSubNode char_span_repsent_left;
+    PSubNode char_span_repsent_right;
+    ConcatNode char_state_concat;
+    UniNode char_state_hidden;
 
-	vector<SPAddNode> outputs;
+    BiNode app_state_represent;
+    TriNode sep_state_represent;
 
-	Node bucket;
-
-public:
-	inline void initial(ModelParams& params, HyperParams& hyparams, AlignedMemoryPool* mem){
-		//neural features
-		last_word_input.setParam(&(params.word_table));
-		last2_word_input.setParam(&(params.word_table));
-		word_conv.setParam(&(params.word_conv));
-		word_lstm.init(&(params.word_lstm), hyparams.dropProb, mem); //already allocated here
-
-		last_action_input.setParam(&(params.action_table));
-		last2_action_input.setParam(&(params.action_table));
-		action_conv.setParam(&(params.action_conv));
-		action_lstm.init(&(params.action_lstm), hyparams.dropProb, mem); //already allocated here
-
-		sep_hidden.setParam(&(params.sep_hidden));
-		app_hidden.setParam(&(params.app_hidden));
-		sep_score.setParam(&(params.sep_score));
-		app_score.setParam(&(params.app_score));
+    LinearNode app_score;
+    LinearNode sep_score;
 
 
-		outputs.resize(hyparams.action_num);
+    vector<SPAddNode> outputs;
 
-		//allocate node memories
-		last_word_input.init(hyparams.word_dim, hyparams.dropProb, mem);
-		last2_word_input.init(hyparams.word_dim, hyparams.dropProb, mem);
-		word_conv.init(hyparams.word_hidden_dim, hyparams.dropProb, mem);
-
-		last_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
-		last2_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
-		action_conv.init(hyparams.action_hidden_dim, hyparams.dropProb, mem);
-		
-		sep_hidden.init(hyparams.sep_hidden_dim, -1, mem);
-		app_hidden.init(hyparams.app_hidden_dim, -1, mem);
-		sep_score.init(1, -1, mem);
-		app_score.init(1, -1, mem);
-		
-		bucket.init(hyparams.char_lstm_dim, -1, mem);
-        bucket.set_bucket();
-		
-		for (int idx = 0; idx < hyparams.action_num; idx++) {
-			outputs[idx].init(1, -1, mem);
-		}
-	}
+    Node bucket_char, bucket_word, bucket_action;
 
 
 public:
-	inline void forward(Graph* cg, const vector<CAction>& actions, const AtomFeatures& atomFeat, PNode prevStateNode){
-		static vector<PNode> sumNodes;
-		static CAction ac;
-		static int ac_num;
-		ac_num = actions.size();
+    ~ActionedNodes() {
+        //m_outf.close();
+    }
+public:
+    inline void initial(ModelParams& params, HyperParams& hyparams, AlignedMemoryPool* mem) {
+        last_action_input.setParam(&(params.action_table));
+        last_action_input.init(hyparams.action_dim, hyparams.dropProb, mem);
+        action_lstm.init(&(params.action_lstm), hyparams.dropProb, mem); //already allocated here
+        action_state_concat.init(hyparams.action_feat_dim, -1, mem);
+        action_state_hidden.setParam(&(params.action_state_hidden));
+        action_state_hidden.init(hyparams.action_state_dim, hyparams.dropProb, mem);
+        last_word_input.setParam(&(params.word_table));
+        last_word_input.init(hyparams.word_dim, hyparams.dropProb, mem);
+        word_lstm.init(&(params.word_lstm), hyparams.dropProb, mem); //already allocated here
+        word_state_concat.init(hyparams.word_feat_dim, -1, mem);
+        word_state_hidden.setParam(&(params.word_state_hidden));
+        word_state_hidden.init(hyparams.word_state_dim, hyparams.dropProb, mem);
 
-		last2_action_input.forward(cg, atomFeat.str_2AC);
-		last_action_input.forward(cg, atomFeat.str_1AC);
-		action_conv.forward(cg, &last2_action_input, &last_action_input);
-		action_lstm.forward(cg, &action_conv, atomFeat.p_action_lstm);
+        char_span_repsent_left.init(hyparams.char_lstm_dim, -1, mem);
+        char_span_repsent_right.init(hyparams.char_lstm_dim, -1, mem);
+        char_state_concat.init(hyparams.char_feat_dim, -1, mem);
+        char_state_hidden.setParam(&params.char_state_hidden);
+        char_state_hidden.init(hyparams.char_state_dim, hyparams.dropProb, mem);
 
-		last2_word_input.forward(cg, atomFeat.str_2W);
-		last_word_input.forward(cg, atomFeat.str_1W);
-		word_conv.forward(cg, &last2_word_input, &last_word_input);
-		word_lstm.forward(cg, &word_conv, atomFeat.p_word_lstm);
-
-		PNode P_char_left_lstm = atomFeat.next_position >= 0 ? &(atomFeat.p_char_left_lstm->_hiddens[atomFeat.next_position]) : &bucket;
-		PNode P_char_right_lstm = atomFeat.next_position >= 0 ? &(atomFeat.p_char_right_lstm->_hiddens[atomFeat.next_position]) : &bucket;
+        app_state_represent.setParam(&params.app_state_represent);
+        app_state_represent.init(hyparams.app_dim, hyparams.dropProb, mem);
+        sep_state_represent.setParam(&params.sep_state_represent);
+        sep_state_represent.init(hyparams.sep_dim, hyparams.dropProb, mem);
 
 
-		for (int idx = 0; idx < ac_num; idx++){
-			ac.set(actions[idx]);
-			sumNodes.clear();
+        app_score.setParam(&(params.app_score));
+        app_score.init(1, -1, mem);
+        sep_score.setParam(&(params.sep_score));
+        sep_score.init(1, -1, mem);
+        outputs.resize(hyparams.action_num);
 
-			if (prevStateNode != NULL){
-				sumNodes.push_back(prevStateNode);
-			}
+        //neural features
+        for (int idx = 0; idx < hyparams.action_num; idx++) {
+            outputs[idx].init(1, -1, mem);
+        }
 
-			//neural features
-			if (ac.isAppend()){
-				app_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm, &(action_lstm._hidden));
-				app_score.forward(cg, &app_hidden);
-				sumNodes.push_back(&app_score);
-			}
-			else{
-				sep_hidden.forward(cg, P_char_left_lstm, P_char_right_lstm, &(word_lstm._hidden), &(action_lstm._hidden));
-				sep_score.forward(cg, &sep_hidden);
-				sumNodes.push_back(&sep_score);
-			}
 
-			outputs[idx].forward(cg, sumNodes, 0);
-		}
-	}
+
+        bucket_char.init(hyparams.char_lstm_dim, -1, mem);
+        bucket_char.set_bucket();
+        bucket_word.init(hyparams.word_lstm_dim, -1, mem);
+        bucket_word.set_bucket();
+
+        bucket_action.init(hyparams.action_lstm_dim, -1, mem);
+        bucket_action.set_bucket();
+    }
+
+
+public:
+    inline void forward(Graph* cg, const vector<CAction>& actions, AtomFeatures& atomFeat, PNode prevStateNode) {
+        static vector<PNode> sumNodes;
+        static CAction ac;
+        static int ac_num;
+        ac_num = actions.size();
+
+        vector<PNode> actionNodes;
+        last_action_input.forward(cg, atomFeat.str_AC);
+        action_lstm.forward(cg, &last_action_input, atomFeat.p_action_lstm);
+        actionNodes.push_back(&action_lstm._hidden);
+        if (action_lstm._nSize > 1) {
+            actionNodes.push_back(&action_lstm._pPrev->_hidden);
+        }
+        else {
+            actionNodes.push_back(&bucket_action);
+        }
+        action_state_concat.forward(cg, actionNodes);
+        action_state_hidden.forward(cg, &action_state_concat);
+        vector<PNode> wordNodes;
+        last_word_input.forward(cg, atomFeat.str_1W);
+        word_lstm.forward(cg, &last_word_input, atomFeat.p_word_lstm);
+        wordNodes.push_back(&word_lstm._hidden);
+        if (word_lstm._nSize > 1) {
+            wordNodes.push_back(&word_lstm._pPrev->_hidden);
+        }
+        else {
+            wordNodes.push_back(&bucket_word);
+        }
+        word_state_concat.forward(cg, wordNodes);
+        word_state_hidden.forward(cg, &word_state_concat);
+
+
+        //
+        vector<PNode> charNodes;
+        int char_posi = atomFeat.next_position;
+        PNode char_node_left_curr = (char_posi  < atomFeat.char_size) ? &(atomFeat.p_char_left_lstm->_hiddens[char_posi]) : &bucket_char;
+        PNode char_node_left_next1 = (char_posi + 1  < atomFeat.char_size) ? &(atomFeat.p_char_left_lstm->_hiddens[char_posi + 1]) : &bucket_char;
+        PNode char_node_left_next2 = (char_posi + 2  < atomFeat.char_size) ? &(atomFeat.p_char_left_lstm->_hiddens[char_posi + 2]) : &bucket_char;
+        PNode char_node_left_prev1 = (char_posi > 0) ? &(atomFeat.p_char_left_lstm->_hiddens[char_posi - 1]) : &bucket_char;
+        PNode char_node_left_prev2 = (char_posi > 1) ? &(atomFeat.p_char_left_lstm->_hiddens[char_posi - 2]) : &bucket_char;
+
+        PNode char_node_right_curr = (char_posi  < atomFeat.char_size) ? &(atomFeat.p_char_right_lstm->_hiddens[char_posi]) : &bucket_char;
+        PNode char_node_right_next1 = (char_posi + 1  < atomFeat.char_size) ? &(atomFeat.p_char_right_lstm->_hiddens[char_posi + 1]) : &bucket_char;
+        PNode char_node_right_next2 = (char_posi + 2  < atomFeat.char_size) ? &(atomFeat.p_char_right_lstm->_hiddens[char_posi + 2]) : &bucket_char;
+        PNode char_node_right_prev1 = (char_posi > 0) ? &(atomFeat.p_char_right_lstm->_hiddens[char_posi - 1]) : &bucket_char;
+        PNode char_node_right_prev2 = (char_posi > 1) ? &(atomFeat.p_char_right_lstm->_hiddens[char_posi - 2]) : &bucket_char;
+
+        charNodes.push_back(char_node_left_curr);
+        charNodes.push_back(char_node_left_next1);
+        charNodes.push_back(char_node_left_next2);
+        charNodes.push_back(char_node_left_prev1);
+        charNodes.push_back(char_node_left_prev2);
+
+        charNodes.push_back(char_node_right_curr);
+        charNodes.push_back(char_node_right_next1);
+        charNodes.push_back(char_node_right_next2);
+        charNodes.push_back(char_node_right_prev1);
+        charNodes.push_back(char_node_right_prev2);
+
+        PNode char_lstm_left_start = atomFeat.word_start > 0 ? &(atomFeat.p_char_left_lstm->_hiddens[atomFeat.word_start - 1]) : &bucket_char;
+        PNode char_lstm_left_end = char_node_left_prev1;
+
+        PNode char_lstm_right_start = atomFeat.word_start >= 0 ? &(atomFeat.p_char_right_lstm->_hiddens[atomFeat.word_start]) : &bucket_char;
+        PNode char_lstm_right_end = char_node_right_curr;
+
+        char_span_repsent_left.forward(cg, char_lstm_left_end, char_lstm_left_start);
+        charNodes.push_back(&char_span_repsent_left);
+        char_span_repsent_right.forward(cg, char_lstm_right_start, char_lstm_right_end);
+        charNodes.push_back(&char_span_repsent_right);
+
+        char_state_concat.forward(cg, charNodes);
+        char_state_hidden.forward(cg, &char_state_concat);
+
+        app_state_represent.forward(cg, &char_state_hidden, &action_state_hidden);
+        sep_state_represent.forward(cg, &char_state_hidden, &word_state_hidden, &action_state_hidden);
+
+        for (int idx = 0; idx < ac_num; idx++) {
+            ac.set(actions[idx]);
+            sumNodes.clear();
+
+            if (prevStateNode != NULL) {
+                sumNodes.push_back(prevStateNode);
+            }
+
+            if (ac.isAppend()) {
+                app_score.forward(cg, &app_state_represent);
+                sumNodes.push_back(&app_score);
+            }
+            else if (ac.isSeparate() || ac.isFinish()) {
+                sep_score.forward(cg, &sep_state_represent);
+                sumNodes.push_back(&sep_score);
+            }
+            else {
+                std::cout << "error action here" << std::endl;
+            }
+
+            outputs[idx].forward(cg, sumNodes, 0);
+        }
+    }
 
 };
 

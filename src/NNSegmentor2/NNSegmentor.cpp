@@ -6,7 +6,7 @@
  */
 
 #include "NNSegmentor.h"
-
+#include <chrono>
 #include "Argument_helper.h"
 
 Segmentor::Segmentor(size_t memsize) : m_driver(memsize){
@@ -46,7 +46,6 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 			word_stat[normalize_to_lowerwithdigit(instance.words[idx])]++;
 		}
 		for (int idx = 0; idx < instance.charsize(); idx++) {
-			charType_stat[instance.chars[idx]]++;
 			char_stat[instance.chars[idx]]++;
 			if (idx < instance.charsize() - 1){
 				bichar_stat[instance.chars[idx] + instance.chars[idx + 1]]++;
@@ -84,11 +83,13 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		m_driver._modelparams.embeded_bichars.initial(bichar_stat, m_options.charCutOff);
 	}
 
-    charType_stat[nullkey] = 1;
-	m_driver._modelparams.embeded_chartypes.initial(charType_stat);	
-	m_driver._modelparams.charTypes.initial(charType_stat);
+	static unordered_map<string, int>::const_iterator elem_iter;
+	for (elem_iter = word_stat.begin(); elem_iter != word_stat.end(); elem_iter++){
+		if (elem_iter->second > count / 50000 + 3){
+			m_driver._hyperparams.dicts.insert(elem_iter->first);
+		}
+	}
 
-	
 	unordered_map<string, int> action_stat;
 
 	vector<CStateItem> state(m_driver._hyperparams.maxlength + 1);
@@ -96,7 +97,7 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	CAction answer;
 	Metric eval;
 	int actionNum;
-	eval.reset(); 
+	eval.reset();
 	for (numInstance = 0; numInstance < vecInsts.size(); numInstance++) {
 		const Instance &instance = vecInsts[numInstance];
 		actionNum = 0;
@@ -105,6 +106,8 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 		action_stat[state[actionNum]._lastAction.str()]++;
 		while (!state[actionNum].IsTerminated()) {
 			state[actionNum].getGoldAction(instance.words, answer);
+			state[actionNum].prepare(&m_driver._hyperparams, NULL, NULL);
+			charType_stat[state[actionNum]._atomFeat.str_CT0]++;
 			state[actionNum].move(&(state[actionNum + 1]), answer);
 			actionNum++;
 			action_stat[answer.str()]++;
@@ -132,7 +135,11 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 			break;
 	}
 
-    m_driver._modelparams.embeded_actions.initial(action_stat, 0);
+    m_driver._modelparams.embeded_chartypes.initial(charType_stat);
+    charType_stat[nullkey] = 1;
+    m_driver._modelparams.charTypes.initial(charType_stat);
+	action_stat[nullkey] = 1;
+	m_driver._modelparams.embeded_actions.initial(action_stat, 0);
 
 	cout << numInstance << " " << endl;
 	cout << "Total word num: " << word_stat.size() << endl;
@@ -141,6 +148,10 @@ int Segmentor::createAlphabet(const vector<Instance>& vecInsts) {
 	cout << "Remain word num: " << m_driver._modelparams.words.size() << endl;
 	cout << "Remain char num: " << m_driver._modelparams.chars.size() << endl;
 	cout << "Remain charType num: " << m_driver._modelparams.charTypes.size() << endl;
+
+	cout << "Dictionary word num: " << m_driver._hyperparams.dicts.size() << endl;
+
+
 
 	return 0;
 }
@@ -236,7 +247,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	}
 
 	initial_successed = false;
-	if (m_options.bicharEmbFile != ""){	
+	if (m_options.bicharEmbFile != ""){		
 		initial_successed = m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbFile, m_options.bicharEmbFineTune, m_options.bicharEmbNormalize);
 		if (initial_successed){
 			m_options.bicharEmbSize = m_driver._modelparams.bichar_table.nDim;
@@ -247,8 +258,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		m_driver._modelparams.bichar_table.initial(&m_driver._modelparams.embeded_bichars, m_options.bicharEmbSize, true);
 	}
 
+	m_driver._modelparams.action_table.initial(&m_driver._modelparams.embeded_actions, m_options.actionEmbSize, true);
 	m_driver._modelparams.chartype_table.initial(&m_driver._modelparams.embeded_chartypes, m_options.charTypeEmbSize, true);
-    m_driver._modelparams.action_table.initial(&m_driver._modelparams.embeded_actions, m_options.actionEmbSize, true);
 
 	m_driver._hyperparams.action_num = CAction::FIN + 1;
 	m_driver._hyperparams.setRequared(m_options);
@@ -277,6 +288,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 	static vector<vector<string> > subInstances;
 	static vector<vector<CAction> > subInstGoldActions;
 
+    auto program_start = std::chrono::high_resolution_clock::now();
+
 	for (int iter = 0; iter < maxIter; ++iter) {
 		std::cout << "##### Iteration " << iter << std::endl;
 		srand(iter);
@@ -284,6 +297,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 		std::cout << "random: " << indexes[0] << ", " << indexes[indexes.size() - 1] << std::endl;
 		bool bEvaluate = false;
 
+        auto t_start = std::chrono::high_resolution_clock::now();
 		if (m_options.batchSize == 1){
 			eval.reset();
 			bEvaluate = true;
@@ -298,12 +312,20 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 				eval.overall_label_count += m_driver._eval.overall_label_count;
 				eval.correct_label_count += m_driver._eval.correct_label_count;
 
-				if ((idy + 1) % (m_options.verboseIter * 10) == 0) {
-					std::cout << "current: " << idy + 1 << ", Cost = " << cost << ", Correct(%) = " << eval.getAccuracy() << std::endl;
-				}
+                if ((idy + 1) % (m_options.verboseIter) == 0) {
+                    auto t_end = std::chrono::high_resolution_clock::now();
+                    std::cout << "current: " << idy + 1 << ", Cost = " << cost << ", Correct(%) = " << eval.getAccuracy()
+                        << ", Time: " << std::chrono::duration<double>(t_end - t_start).count() << "s" << std::endl;
+                    t_start = std::chrono::high_resolution_clock::now();
+                }
+
 				m_driver.updateModel();
 			}
-			std::cout << "current: " << iter + 1 << ", Correct(%) = " << eval.getAccuracy() << std::endl;
+            {
+                auto t_end = std::chrono::high_resolution_clock::now();
+                std::cout << "current: " << iter + 1 << ", Correct(%) = " << eval.getAccuracy() << ", Time: " << std::chrono::duration<double>(t_end - t_start).count() << "s" << std::endl;
+            }
+            t_start = std::chrono::high_resolution_clock::now();
 		}
 		else{
 			if (iter == 0)eval.reset();
@@ -319,21 +341,24 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 			eval.correct_label_count += m_driver._eval.correct_label_count;
 
 			if ((iter + 1) % (m_options.verboseIter) == 0) {
-				std::cout << "current: " << iter + 1 << ", Cost = " << cost << ", Correct(%) = " << eval.getAccuracy() << std::endl;
+                auto t_end = std::chrono::high_resolution_clock::now();
+                std::cout << "current: " << iter + 1 << ", Cost = " << cost << ", Correct(%) = " << eval.getAccuracy()
+                    << ", Time: " << std::chrono::duration<double>(t_end - t_start).count() << "s" << std::endl;
 				eval.reset();
 				bEvaluate = true;
 			}
 
 			m_driver.updateModel();
 		}
+        
 
 		if (bEvaluate && devNum > 0) {
-			clock_t time_start = clock();
+			auto dev_start = std::chrono::high_resolution_clock::now();
 			std::cout << "Dev start." << std::endl;
 			bCurIterBetter = false;
 			if (!m_options.outBest.empty())
 				decodeInstResults.clear();
-			metric_dev.reset(); 
+			metric_dev.reset();
 			for (int idx = 0; idx < devInsts.size(); idx++) {
 				predict(devInsts[idx], curDecodeInst);
 				devInsts[idx].evaluate(curDecodeInst, metric_dev);
@@ -341,7 +366,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 					decodeInstResults.push_back(curDecodeInst);
 				}
 			}
-			std::cout << "Dev finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
+            auto dev_end = std::chrono::high_resolution_clock::now();
+			std::cout << "Dev finished. Total time taken is: " << std::chrono::duration<double>(dev_end - dev_start).count() << std::endl;
 			std::cout << "dev:" << std::endl;
 			metric_dev.print();
 
@@ -351,11 +377,11 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 			}
 
 			if (testNum > 0) {
-				time_start = clock();
+                auto test_start = std::chrono::high_resolution_clock::now();
 				std::cout << "Test start." << std::endl;
 				if (!m_options.outBest.empty())
 					decodeInstResults.clear();
-				metric_test.reset(); 
+				metric_test.reset();
 				for (int idx = 0; idx < testInsts.size(); idx++) {
 					predict(testInsts[idx], curDecodeInst);
 					testInsts[idx].evaluate(curDecodeInst, metric_test);
@@ -363,7 +389,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 						decodeInstResults.push_back(curDecodeInst);
 					}
 				}
-				std::cout << "Test finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
+                auto test_end = std::chrono::high_resolution_clock::now();
+                std::cout << "Test finished. Total time taken is: " << std::chrono::duration<double>(test_end - test_start).count() << std::endl;
 				std::cout << "test:" << std::endl;
 				metric_test.print();
 
@@ -373,7 +400,7 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 			}
 
 			for (int idx = 0; idx < otherInsts.size(); idx++) {
-				time_start = clock();
+                auto test_start = std::chrono::high_resolution_clock::now();
 				std::cout << "processing " << m_options.testFiles[idx] << std::endl;
 				if (!m_options.outBest.empty())
 					decodeInstResults.clear();
@@ -385,7 +412,8 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 						decodeInstResults.push_back(curDecodeInst);
 					}
 				}
-				std::cout << "Test finished. Total time taken is: " << double(clock() - time_start) / CLOCKS_PER_SEC << std::endl;
+                auto test_end = std::chrono::high_resolution_clock::now();
+                std::cout << "Test finished. Total time taken is: " << std::chrono::duration<double>(test_end - test_start).count() << std::endl;
 				std::cout << "test:" << std::endl;
 				metric_test.print();
 
@@ -401,6 +429,9 @@ void Segmentor::train(const string& trainFile, const string& devFile, const stri
 				writeModelFile(modelFile);
 			}
 		}
+
+        auto program_end = std::chrono::high_resolution_clock::now();
+        std::cout << "Iteration "<< iter << "  finished. Total time taken is: " << std::chrono::duration<double>(program_end - program_start).count() << std::endl;
 	}
 }
 
@@ -417,6 +448,7 @@ void Segmentor::test(const string& testFile, const string& outputFile, const str
 	Metric metric_test;
 	metric_test.reset();
 	for (int idx = 0; idx < testInsts.size(); idx++) {
+		vector<string> result_labels;
 		predict(testInsts[idx], testInstResults[idx]);
 		testInsts[idx].evaluate(testInstResults[idx], metric_test);
 	}
@@ -426,14 +458,9 @@ void Segmentor::test(const string& testFile, const string& outputFile, const str
 	std::ofstream os(outputFile.c_str());
 
 	for (int idx = 0; idx < testInsts.size(); idx++) {
-		for (int idy = 0; idy < testInstResults[idx].size(); idy++) {
+		for (int idy = 0; idy < testInstResults[idx].size(); idy++){
 			os << testInstResults[idx][idy] << " ";
 		}
-		os << std::endl;
-		for (int idy = 0; idy < testInstResults[idx].size(); idy++) {
-			os << testInstResults[idx][idy] << " ";
-		}
-		os << std::endl;
 		os << std::endl;
 	}
 	os.close();

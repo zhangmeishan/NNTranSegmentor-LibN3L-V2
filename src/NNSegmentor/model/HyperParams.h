@@ -7,107 +7,106 @@
 using namespace nr;
 using namespace std;
 
-struct HyperParams{
-	//required
-	int beam;
-	int maxlength;
-	int action_num;
-	dtype delta;
-	unordered_set<string> dicts;  // dictionary in order to extract iv/oov features.
+struct HyperParams {
+  //required
+  int beam;
+  int maxlength;
+  int action_num;
+  dtype delta;
 
 
-	dtype nnRegular; // for optimization
-	dtype adaAlpha;  // for optimization
-	dtype adaEps; // for optimization
-	dtype dropProb;
+  dtype nnRegular; // for optimization
+  dtype adaAlpha;  // for optimization
+  dtype adaEps; // for optimization
+  dtype dropProb;
 
-	int char_dim; 
-	int chartype_dim;
-	int bichar_dim;
-	int word_dim;
-	int action_dim;
+  int char_dim;
+  int chartype_dim;
+  int bichar_dim;
+  int char_represent_dim;
+  int char_hidden_dim;
+  int char_lstm_dim;
+  int char_feat_dim;
+  int char_state_dim;
+  bool char_tune;
+  bool bichar_tune;
 
-	bool char_tune;
-	bool bichar_tune;
-	bool word_tune;
+  int word_dim;
+  int word_lstm_dim;
+  int word_feat_dim;
+  int word_state_dim;
+  bool word_tune;
 
-	int char_context;
-	int char_repsentation_dim;
-	int char_window_dim;
+  int action_dim;
+  int action_lstm_dim;
+  int action_feat_dim;
+  int action_state_dim;
 
-	int char_hidden_dim;  
-	int word_hidden_dim;
-	int action_hidden_dim;
-
-	int char_lstm_dim;
-	int word_lstm_dim;
-	int action_lstm_dim;
-
-	int sep_hidden_dim;
-	int app_hidden_dim;
-
-public:
-	HyperParams(){
-		maxlength = max_sentence_clength + 1;
-		bAssigned = false;
-	}
+  int app_dim;
+  int sep_dim;
 
 public:
-	void setRequared(Options& opt){
-		//please specify dictionary outside
-		//please sepcify char_dim, word_dim and action_dim outside.
-		beam = opt.beam;
-		delta = opt.delta;
-		bAssigned = true;
+  HyperParams() {
+    maxlength = max_sentence_clength + 1;
+    bAssigned = false;
+  }
 
-		nnRegular = opt.regParameter;
-		adaAlpha = opt.adaAlpha;
-		adaEps = opt.adaEps;
-		dropProb = opt.dropProb;
+public:
+  void setRequared(Options& opt) {
+    //please specify dictionary outside
+    //please sepcify char_dim, word_dim and action_dim outside.
+    beam = opt.beam;
+    delta = opt.delta;
+    bAssigned = true;
 
-		char_dim = opt.charEmbSize;
-		bichar_dim = opt.bicharEmbSize;
-		chartype_dim = opt.charTypeEmbSize;
-		word_dim = opt.wordEmbSize;
-		action_dim = opt.actionEmbSize;
+    nnRegular = opt.regParameter;
+    adaAlpha = opt.adaAlpha;
+    adaEps = opt.adaEps;
+    dropProb = opt.dropProb;
 
-		char_tune = opt.charEmbFineTune;
-		bichar_tune = opt.bicharEmbFineTune;
-		word_tune = opt.wordEmbFineTune;
+    char_dim = opt.charEmbSize;
+    bichar_dim = opt.bicharEmbSize;
+    chartype_dim = opt.charTypeEmbSize;
+    char_represent_dim = char_dim + bichar_dim + chartype_dim;
+    char_hidden_dim = opt.charHiddenSize;
+    char_lstm_dim = opt.charRNNHiddenSize;
+    char_feat_dim = 12 * char_lstm_dim;
+    char_state_dim = opt.charStateSize;
+    char_tune = opt.charEmbFineTune;
+    bichar_tune = opt.bicharEmbFineTune;
 
-		char_context = opt.charcontext;
-		char_repsentation_dim = char_dim + bichar_dim + chartype_dim;
-		char_window_dim = (2 * char_context + 1) * char_repsentation_dim;
+    word_dim = opt.wordEmbSize;
+    word_lstm_dim = opt.wordRNNHiddenSize;
+    word_feat_dim = 2 * word_lstm_dim;
+    word_state_dim = opt.wordStateSize;
+    word_tune = opt.wordEmbFineTune;
 
-		char_hidden_dim = opt.charHiddenSize;
-		word_hidden_dim = opt.wordHiddenSize;
-		action_hidden_dim = opt.actionHiddenSize;
+    action_dim = opt.actionEmbSize;
+    action_lstm_dim = opt.actionRNNHiddenSize;
+    action_feat_dim = 2 * action_lstm_dim;
+    action_state_dim = opt.actionStateSize;
 
-		char_lstm_dim = opt.charRNNHiddenSize;
-		word_lstm_dim = opt.wordRNNHiddenSize;
-		action_lstm_dim = opt.actionRNNHiddenSize;
+    app_dim = opt.appHiddenSize;
+    sep_dim = opt.sepHiddenSize;
+  }
 
-		sep_hidden_dim = opt.sepHiddenSize;
-		app_hidden_dim = opt.appHiddenSize;
-	}
+  void clear() {
+    bAssigned = false;
+  }
 
-	void clear(){
-		bAssigned = false;
-	}
-
-	bool bValid(){
-		return bAssigned;
-	}
+  bool bValid() {
+    return bAssigned;
+  }
 
 
 public:
 
-	void print(){
+  void print() {
 
-	}
+  }
 
 private:
-	bool bAssigned;
+  bool bAssigned;
 };
 
 
